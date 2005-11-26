@@ -2,7 +2,7 @@ function preload(locale) {
 	if(document.images) {
 		document.seasar_menu_b = new Array();
 		document.seasar_menu_o = new Array();
-		for(i = 1; i <= 7; i++) {
+		for(i = 1; i < 8; i++) {
 			document.seasar_menu_b[i] = new Image();
 			document.seasar_menu_b[i].src =
 				'images/menu0' + i + '_b_' + locale + '.gif';
@@ -22,4 +22,3 @@ function restore(i) {
 	var id = 'menu0' + i;
 	document.getElementById(id).src = document.seasar_menu_b[i].src;
 }
-
