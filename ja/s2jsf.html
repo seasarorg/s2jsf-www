@@ -430,19 +430,29 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
     &lt;/component&gt;
 &lt;/components&gt;
 </pre>
+
 <h3><a name="converter">converter.html</a></h3>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>converter属性の使い方。</li>
+<li>エラーメッセージにm:labelを使用する方法。</li>
 </ul>
 <p>それでは、HTMLの一部を見てみましょう。 </p>
-<pre>&lt;form&gt;
-    &lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;<br>    &lt;input type=&quot;text&quot; m:value=&quot;#{converterDto.aaa}&quot;<br>        m:converter=&quot;#{inputDateTimeConverter}&quot;/&gt;&lt;br /&gt;<br>    &lt;span m:value=&quot;#{converterDto.aaa}&quot;<br>        m:converter=&quot;#{outputDateTimeConverter}&quot;/&gt;&lt;br /&gt;<br>    &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;<br>&lt;/form&gt;
+<pre>
+&lt;form&gt;
+    &lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;
+    &lt;input type=&quot;text&quot; m:value=&quot;#{converterDto.aaa}&quot; m:label=&quot;Hire Date&quot;
+        m:converter=&quot;#{inputDateTimeConverter}&quot;/&gt;&lt;br /&gt;
+    &lt;span m:value=&quot;#{converterDto.aaa}&quot;
+        m:converter=&quot;#{outputDateTimeConverter}&quot;/&gt;&lt;br /&gt;
+    &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;
+&lt;/form&gt;
 </pre>
 <p>ほとんどの入出力用のタグは、converter属性を持っていて、Javaのオブジェクトの値を文字列に変換したり、入力された文字列を適切なオブジェクトの型に変換するためのコンバータを指定することができます。この例におけるコンバータは、examples/jsf/dicon/allconverter.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;inputDateTimeConverter&quot; class=&quot;javax.faces.convert.DateTimeConverter&quot;&gt;<br>    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyyMMdd&quot;&lt;/property&gt;<br>&lt;/component&gt;<br>&lt;component name=&quot;outputDateTimeConverter&quot; class=&quot;javax.faces.convert.DateTimeConverter&quot;&gt;<br>    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyy/MM/dd&quot;&lt;/property&gt;<br>&lt;/component&gt;
+<pre>&lt;component name=&quot;inputDateTimeConverter&quot; class=&quot;org.seasar.jsf.convert.S2DateTimeConverter&quot;&gt;<br>    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyyMMdd&quot;&lt;/property&gt;<br>&lt;/component&gt;<br>&lt;component name=&quot;outputDateTimeConverter&quot; class=&quot;org.seasar.jsf.convert.S2DateTimeConverter&quot;&gt;<br>    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyy/MM/dd&quot;&lt;/property&gt;<br>&lt;/component&gt;
 </pre>
 <p>このようにコンバータをHTMLで個別に定義するのではなく、diconファイルで一元管理することで、コンバータの定義が分散することを防ぐことが出来ます。</p>
+<p>また、label属性に定義した値を、コンバート失敗時のメッセージに使用することが出来ます。それにはConverterがlabel属性に対応している必要があります。標準のConverterについては、それぞれ対応するConverterをS2JSFで用意しています。独自のConverterを作る場合は、S2JSFを参考にしてください。</p>
 
 <h3><a name="validator">validator.html</a></h3>
 <p>このサンプルでは、次のことを学びます。</p>
