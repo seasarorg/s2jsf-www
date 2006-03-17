@@ -3,10 +3,10 @@
 <!-- don't edit start -->
 <head>
 <title>Seasar - DI Container with AOP - </title>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-<meta http-equiv="Content-Style-Type" content="text/css"/>
-<link href="seasar_b.css" type="text/css" rel="stylesheet" media="screen"/>
-<link href="seasar_p.css" type="text/css" rel="stylesheet" media="print"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link href="seasar_b.css" type="text/css" rel="stylesheet" media="screen" />
+<link href="seasar_p.css" type="text/css" rel="stylesheet" media="print" />
 <script src="seasar_b.js" type="text/JavaScript" language="JavaScript"></script>
 </head>
 <body onload="preload('en')">
@@ -113,14 +113,14 @@ Line 17 defines the body section of the document. Naming the document section us
         &lt;arg&gt;"s"&lt;/arg&gt;<br>        &lt;arg&gt;"http://www.seasar.org/jsf"&lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
 </pre>
 Span element in line 10 in listing 2 inserts header.html page. The <span class="enter">inject</span> attribute is set to <span class="enter">insert</span> and the src attribute specifies the file to insert. In the sample, header.html contains the following elements and inserts an image seasar.gif.</p>
-<a name="header_html"/>
+<a name="header_html" />
 <pre><strong>listing 4: header.html</strong>
 &lt;html xmlns:m="http://www.seasar.org/maya"&gt;<br>&lt;body&gt;<br>    &lt;span m:inject="s:insert"&gt;<br>        &lt;img m:inject="h:graphicImage" m:url="/images/seasar.gif"/&gt;<br>    &lt;/span&gt;
 &lt;/body&gt;<br>&lt;/html&gt;
 </pre>
 <p>The page to be inserted has a span tag with inject="s:insert" attribute and  without the name attribute. Content to be inserted are specified as child elements of this span tag. Elements above this span element are displayed when the file is directly opened with a web browser but are ignored when the page is generated (i.e. URI to generate the page is used instead of a file name.)<br />
 Following is the content of menu.html used in the sample.</p>
-<a name="menu_html"/>
+<a name="menu_html" />
 <pre><strong>listing 5: menu.html</strong>
 &lt;html xmlns:m="http://www.seasar.org/maya"&gt;
 ...
