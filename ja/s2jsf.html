@@ -167,13 +167,13 @@ m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;...,&lt;/span&gt;を定
 <p>headタグの部分は、実行時には無視されます。ブラウザでのプレビュー用です。</p>
 <p>10行目の&lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;で、エラーが起きたときのメッセージを出力する準備をしています。globalOnly属性がtrueの場合、個別の入力項目には関係のない(globalな)エラーのメッセージだけが出力されます。falseにするとglobalなメッセージも個別のメッセージも出力するようになります。</p>
 <p>11行目の&lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt;で、入出力用のタグとJavaBeansのプロパティを連動させています。入力した値は、バリデーションがOKなら、JavaBeansのプロパティに格納され、NGの場合は、入力された値がそのままページに表示されることになります。このように入出力値の管理をきちんと行ってくれるところが、JSFの偉いところです。StrutsのようにActionFormでとりあえずStringで受け取るなんて事をする必要がないのです。</p>
-<p>addDtoはどこで定義されているのでしょうか。addDtoは、examples/jsf/dicon/add.diconの中で、次のように定義されています。</p>
+<p>★addDtoはどこで定義されているのでしょうか。addDtoは、examples/jsf/dicon/add.diconの中で、次のように定義されています。</p>
 <pre>&lt;component name=&quot;addDto&quot; class=&quot;examples.jsf.dto.AddDto&quot; instance=&quot;request&quot;/&gt;
 </pre>
 <p>instance属性がrequestになっているので、addDtoはrequestのスコープで管理されることになります。また、add.diconは、ルートの定義であるapp.diconから次のようにincludeされています。</p>
 <pre>&lt;include path=&quot;examples/jsf/dicon/add.dicon&quot;/&gt;
 </pre>
-<p>14行目の&lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;で、ボタンがクリックされたときにJavaBeansのメソッドを呼び出す設定をしています。ボタンやリンクのaction属性で、#{変数名.メソッド名}のように記述することをMethodBindingと呼びます。MethodBindingで呼び出されるメソッドは、引数がなく、戻り値がStringでなければいけません。addActionはadd.diconで次のように定義されています。</p>
+<p>★14行目の&lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;で、ボタンがクリックされたときにJavaBeansのメソッドを呼び出す設定をしています。ボタンやリンクのaction属性で、#{変数名.メソッド名}のように記述することをMethodBindingと呼びます。MethodBindingで呼び出されるメソッドは、引数がなく、戻り値がStringでなければいけません。addActionはadd.diconで次のように定義されています。</p>
 <pre>&lt;component name=&quot;addAction&quot; class=&quot;examples.jsf.action.impl.AddActionImpl&quot; instance=&quot;request&quot;/&gt;
 </pre>
 <p>Actionクラスは、入力された内容をプロパティ経由で受け取ることになるので、instance属性をrequestにします。それでは、AddActionインターフェース、AddActionImplクラスを見てみましょう。インターフェースと実装を必ず分離しなければならないということはないのですが、このように分離したほうが、仕様が明確に伝わり易いと思います。</p>
@@ -213,7 +213,7 @@ public class AddActionImpl implements AddAction {
 }
 </pre>
 <p>入力された値を受け取るために、addDtoというプロパティのsetterメソッドを定義しています。S2JSFは、MethodBindingで指定したメソッドを呼び出す直前にsetterメソッドの定義されているプロパティがないか調べ、もしある場合は、プロパティ名と同様の変数が、リクエストの属性、パラメータ、セッションの属性、S2Containerに存在するか調べ、もし存在する場合には、自動的にsetterメソッドを呼び出し、その変数を設定します。</p>
-<p>addLogicという変数は、どこにも定義されていないのですが、プロパティの型がインターフェースの場合、S2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。AddLogicを実装したクラスは、add.diconで次のように定義されています。</p>
+<p>★addLogicという変数は、どこにも定義されていないのですが、プロパティの型がインターフェースの場合、S2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。AddLogicを実装したクラスは、add.diconで次のように定義されています。</p>
 <pre>&lt;component class=&quot;examples.jsf.logic.impl.AddLogicImpl&quot;/&gt;
 </pre>
 <p>MethodBindingで呼び出したメソッドの戻り値がnullの場合は、自分自身に遷移することになります。</p>
@@ -309,7 +309,25 @@ public class ForEachResultInitActionImpl implements ForEachResultInitAction {
 }
 </pre>
 <p>前のページで、anchorタグやbuttonタグのパラメータでindexを渡していたことを思い出してください。setIndex()メソッドを定義しておけば、S2JSFが自動的にパラメータの値を設定してくれます。また、setForEachDtoList()メソッドを定義しておくことで、examples/jsf/dicon/foreach.diconに定義されているforEachDtoListを参照できます。initMethodタグを使えば、任意のメソッドを呼び出せるので、自由自在にオブジェクトを組み立てることが出来ます。</p>
-<pre>&lt;component name=&quot;forEachDtoList&quot; class=&quot;java.util.ArrayList&quot; instance=&quot;session&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.dto.ForEachDto&quot; &gt;<br>                &lt;property name=&quot;key&quot;&gt;&quot;111&quot;&lt;/property&gt;<br>                &lt;property name=&quot;name&quot;&gt;&quot;aaa&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.dto.ForEachDto&quot; &gt;<br>                &lt;property name=&quot;key&quot;&gt;&quot;222&quot;&lt;/property&gt;<br>                &lt;property name=&quot;name&quot;&gt;&quot;bbb&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>
+&lt;component name=&quot;forEachDtoList&quot; class=&quot;java.util.ArrayList&quot; instance=&quot;session&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.dto.ForEachDto&quot; instance=&quot;prototype&quot;&gt;
+                &lt;property name=&quot;key&quot;&gt;&quot;111&quot;&lt;/property&gt;
+                &lt;property name=&quot;name&quot;&gt;&quot;aaa&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.dto.ForEachDto&quot; instance=&quot;prototype&quot;&gt;
+                &lt;property name=&quot;key&quot;&gt;&quot;222&quot;&lt;/property&gt;
+                &lt;property name=&quot;name&quot;&gt;&quot;bbb&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 <p>initialize()メソッドで指定されたインデックスに基づくオブジェクトをforEachDtoプロパティに設定しています。forEachDtoプロパティには、getterメソッドが定義されているので、initialize()メソッドが実行された後、S2JSFによって、forEachDtoプロパティの値が自動的にリクエストの属性(forEachDto)に設定されます。public static final String プロパティ名_EXPORT = &quot;session&quot;;のように定数を宣言することで、リクエストではなくセッションの属性に設定することも出来ます。 </p>
 
@@ -376,13 +394,13 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 11:    &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;
 &lt;/form&gt;
 </pre>
-<p>5行目を見てみるとわかるように、forEachタグの中でforEachタグを使用して繰り返しを行っています。forEach3DtoListは/examples/jsf/dicon/foreach3.diconを見るとListの中にListがありますので、初めのforEachタグでvar属性をeとしているので2つ目のforEachタグでitems属性を&quot;#{e}&quot;とすることでforEach3DtoListの中のListを使用して繰り返し処理を行います。</p>
+<p>5行目を見てみるとわかるように、forEachタグの中でforEachタグを使用して繰り返しを行っています。forEach3DtoListは/examples/jsf/dicon/foreach.diconを見るとListの中にListがありますので、初めのforEachタグでvar属性をeとしているので2つ目のforEachタグでitems属性を&quot;#{e}&quot;とすることでforEach3DtoListの中のListを使用して繰り返し処理を行います。</p>
 <pre>
 &lt;components&gt;
     &lt;component name=&quot;forEach3DtoList&quot; class=&quot;java.util.ArrayList&quot; instance=&quot;session&quot;&gt;
         &lt;initMethod name=&quot;add&quot; &gt;
             &lt;arg&gt;
-                &lt;component class=&quot;java.util.ArrayList&quot;&gt;
+                &lt;component class=&quot;java.util.ArrayList&quot; instance=&quot;prototype&quot;&gt;
                     &lt;initMethod name=&quot;add&quot;&gt;
                         &lt;arg&gt;
                             new examples.jsf.dto.ForEach3Dto(&quot;11&quot;)
@@ -398,7 +416,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
         &lt;/initMethod&gt;
         &lt;initMethod name=&quot;add&quot; &gt;
             &lt;arg&gt;
-                &lt;component class=&quot;java.util.ArrayList&quot;&gt;
+                &lt;component class=&quot;java.util.ArrayList&quot; instance=&quot;prototype&quot;&gt;
                     &lt;initMethod name=&quot;add&quot;&gt;
                         &lt;arg&gt;
                             new examples.jsf.dto.ForEach3Dto(&quot;21&quot;)
@@ -908,7 +926,7 @@ examples/jsf/Dao
 81:&lt;/select&gt;
 </pre>
 <h4><a name="EmployeeSearchInitializeDicon">ページの初期処理のdiconファイル</a></h4>
-<p>それでは、そのaction属性のemployeeSearchInitActionの定義ファイルを見ていきましょう。employeeSearchInitActionはexamples/jsf/dicon/employee.diconで定義されています。</p>
+<p>★それでは、そのaction属性のemployeeSearchInitActionの定義ファイルを見ていきましょう。employeeSearchInitActionはexamples/jsf/dicon/employee.diconで定義されています。</p>
 <pre>&lt;component name=&quot;employeeSearchInitAction&quot; 
             class=&quot;examples.jsf.action.impl.EmployeeSearchInitActionImpl&quot; instance=&quot;request&quot;&gt;
     <b>&lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;</b>
@@ -957,12 +975,12 @@ public class EmployeeSearchInitActionImpl implements EmployeeSearchInitAction {
                   :
 }
 </pre>
-<p>EmployeeLogicはインターフェースなのでS2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。EmployeeLogicを実装したクラスは、examples/jsf/dicon/employee.diconで以下のように定義されています。<p>
+<p>★EmployeeLogicはインターフェースなのでS2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。EmployeeLogicを実装したクラスは、examples/jsf/dicon/employee.diconで以下のように定義されています。<p>
 <pre>&lt;component class=&quot;examples.jsf.logic.impl.EmployeeLogicImpl&quot;&gt;
     <b>&lt;aspect&gt;logicInterceptorChain&lt;/aspect&gt;</b>
 &lt;/component&gt;
 </pre>
-<p>このaspectタグで定義されているlogicInterceptorChainの定義先はexamples/jsf/dicon/allaop.diconです。これは次のように定義されています。</p>
+<p>★このaspectタグで定義されているlogicInterceptorChainの定義先はexamples/jsf/dicon/allaop.diconです。これは次のように定義されています。</p>
 <pre>
 &lt;component name=&quot;logicInterceptorChain&quot; class=&quot;org.seasar.framework.aop.interceptors.InterceptorChain&quot;&gt;
     <b>&lt;initMethod name=&quot;add&quot;&gt;&lt;arg&gt;aop.traceThrowsInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
@@ -1015,7 +1033,7 @@ public interface DepartmentDtoDao {
                         :
 }
 </pre>
-<p>この2つのDAOをexamples/jsf/dicon/alldao.diconに以下のように定義して生成します。</p>
+<p>★TODO この2つのDAOをexamples/jsf/dicon/alldao.diconに以下のように定義して生成します。</p>
 <pre>
 &lt;components&gt;
     &lt;include path=&quot;dao.dicon&quot;/&gt;
@@ -1127,7 +1145,7 @@ public class EmployeeSearchActionImpl implements EmployeeSearchAction {
                     :
 }
 </pre>
-<p>examples.jsf.dto.ProcessModeDtoは状態を表すDTOです。これはexamples/jsf/dicon/employee.diconでincludeしているexamples/jsf/dicon/processmode.diconに定義してあります。</p>
+<p>★examples.jsf.dto.ProcessModeDtoは状態を表すDTOです。これはexamples/jsf/dicon/employee.diconでincludeしているexamples/jsf/dicon/processmode.diconに定義してあります。</p>
 <pre>
 &lt;components&gt;
     &lt;component name=&quot;processModeDto&quot; class=&quot;examples.jsf.dto.ProcessModeDto&quot; instance=&quot;session&quot;/&gt;
@@ -1194,7 +1212,7 @@ public interface Constants {
 </pre>
 <p>2行目のaction属性でページの初期処理をするメソッドを指定しています。</a>
 <h5><a name ="EmployeeEditInitializeDicon">ページの初期処理のdiconファイル</a></h5>
-<p>この初期化メソッドのemployeeEditInitActionはexamples/jsf/dicon/employee.diconで以下のように宣言されています。aspectタグのactionInterceptorChainは<a href="#EmployeeSearchInitializeDicon">こちら</a>で説明した通りです。</p>
+<p>★この初期化メソッドのemployeeEditInitActionはexamples/jsf/dicon/employee.diconで以下のように宣言されています。aspectタグのactionInterceptorChainは<a href="#EmployeeSearchInitializeDicon">こちら</a>で説明した通りです。</p>
 <pre>
 &lt;component name=&quot;employeeEditInitAction&quot; 
             class=&quot;examples.jsf.action.impl.EmployeeEditInitActionImpl&quot; instance=&quot;request&quot;&gt;
@@ -1298,7 +1316,7 @@ public String initialize() {
 <h4><a name="EmployeeEditAction">Actionクラスの説明</a></h4>
 <p>action属性のemployeeEditActionを見てみましょう。</p>
 <h5><a name="EmployeeEditActionDiocn">Actionクラスのdiconファイル</a></h5>
-<p>employeeEditActionはemployee.diconで定義されています。その定義を見るとexamples.jsf.action.impl.EmployeeEditActionImplのインスタンスで、requestスコープというのがわかります。aspectタグのactionInterceptorChainは<a href="#EmployeeSearchInitializeDicon">こちら</a>で説明した通りです。</p>
+<p>★employeeEditActionはemployee.diconで定義されています。その定義を見るとexamples.jsf.action.impl.EmployeeEditActionImplのインスタンスで、requestスコープというのがわかります。aspectタグのactionInterceptorChainは<a href="#EmployeeSearchInitializeDicon">こちら</a>で説明した通りです。</p>
 <pre>
 &lt;component name=&quot;employeeEditAction&quot; 
             class=&quot;examples.jsf.action.impl.EmployeeEditActionImpl&quot; instance=&quot;request&quot;&gt;
@@ -1387,7 +1405,7 @@ empnoが重複していなければ"employeeConfirm"が返され、/employee/emp
 </pre>
 <p>2行目のaction属性でページを初期化するメソッドを指定しています。</p>
 <h5><a name="EmployeeConfirmInitializeDicon">ページの初期処理のdiconファイル</a></h5>
-<p>この初期化メソッドのemployeeConfirmInitActionはexamples/jsf/dicon/employee.diconで以下のように宣言されています。</p>
+<p>★この初期化メソッドのemployeeConfirmInitActionはexamples/jsf/dicon/employee.diconで以下のように宣言されています。</p>
 <pre>
 &lt;component name="employeeConfirmInitAction" 
             class="examples.jsf.action.impl.EmployeeConfirmInitActionImpl" instance="request"&gt;
@@ -1476,7 +1494,7 @@ public String initialize() {
 <h4><a name="EmployeeConfirmAction">Actionクラスの説明</a></h4>
 <p>アクション属性のemployeeConfirmActionを見ていきましょう。</p>
 <h5><a name="EmployeeConfirmActionDicon">Actionクラスのdiconファイル</a></h5>
-<p>employeeConfirmActionはemployee.diconで以下のように定義されています。</p>
+<p>★employeeConfirmActionはemployee.diconで以下のように定義されています。</p>
 <pre>
 &lt;component name=&quot;employeeConfirmAction&quot; 
             class=&quot;examples.jsf.action.impl.EmployeeConfirmActionImpl&quot; instance=&quot;request&quot;&gt;
@@ -1604,7 +1622,7 @@ public int getSearchCount(EmployeeSearchDto dto) {
 </pre>
 <p>2行目のaction属性でページを初期化するメソッドを指定しています。 </p>
 <h5><a name="EmployeeListInitializeDicon">ページの初期処理のdiconファイル</a></h5>
-<p>employeeListInitActionはemployee.diconでexamples.jsf.action.impl.EmployeeListInitActionImplクラスのインスタンスで、requestスコープと宣言しています。</p>
+<p>★employeeListInitActionはemployee.diconでexamples.jsf.action.impl.EmployeeListInitActionImplクラスのインスタンスで、requestスコープと宣言しています。</p>
 <pre>
 &lt;component name=&quot;employeeListInitAction&quot; 
             class=&quot;examples.jsf.action.impl.EmployeeListInitActionImpl&quot; instance=&quot;request&quot;&gt;
@@ -1690,7 +1708,7 @@ public List searchEmployeeDtoList(EmployeeSearchDto dto) {
 <h4><a name="EmployeeListAction">Actionクラスの説明</a></h4>
 <p>アクション属性のemployeeListActionを見ていきましょう。</p>
 <h5><a name="EmployeeListActionDicon">Actionクラスのdiconファイル</a></h5>
-<p>このemployeeListActionはexamples/jsf/dicon/employee.diconで以下のように定義されています。aspectタグのactionInterceptorChainはこちらで説明した通りです。</p>
+<p>★このemployeeListActionはexamples/jsf/dicon/employee.diconで以下のように定義されています。aspectタグのactionInterceptorChainはこちらで説明した通りです。</p>
 <pre>
 &lt;component name=&quot;employeeListAction&quot; 
             class=&quot;examples.jsf.action.impl.EmployeeListActionImpl&quot; instance=&quot;request&quot;&gt;
