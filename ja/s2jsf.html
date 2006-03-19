@@ -28,9 +28,7 @@
 <tr align="left" valign="top"><td width="18"><img height="14" width="18" src="images/spacer.gif" alt=""></td><td width="744" class="main">
 <!-- don't edit end -->
 <!-- document start -->
-<ul>
-<li><a href="#SetUp">セットアップ</a></li>
-<li><a href="#Sample">サンプル解説</a></li>
+<h2>サンプル解説</h2>
 <ul>
 <li><a href="#hello">hello.html</a></li>
 <li><a href="#add">add.html</a></li>
@@ -56,21 +54,8 @@
 <li><a href="#employeeList">employeeList.html</a></li>
 </ul>
 </ul>
-</ul>
 
-<h2><a name="SetUp">セットアップ</a></h2>
-<p>Seasar2と同様にJDK1.4以上が必要です。s2-jsf-x.x.x.zipを解凍してできたs2jsfディレクトリをEclipseで、
-｢ファイル→インポート→既存のプロジェクトをワークスペースへ｣でインポートしてください。</p>
-<p>サンプルはs2-jsf-example-x.x.x.jarとして別途用意されているので、ダウンロードして解凍してください。先程と同様
-に、Eclipseで、｢ファイル→インポート→既存のプロジェクトをワークスペースへ｣でインポートします。サンプルは、
-<a href="http://jakarta.apache.org/tomcat/">Tomcat5</a>、
-<a href="http://www.sysdeo.com/eclipse/tomcatPlugin.html">Tomcat Plugin</a>を使うことを前提にしています。もし、
-まだインストールしていない場合は、インストールしておいてください。</p>
-<p>Tomcatを起動し、ブラウザでhttp://localhost:8080/s2jsf-exampleにアクセスすると、S2JSFのサンプルを見ることが
-出来ます。</p>
-
-<h2><a name="Sample">サンプル解説</a></h2>
-<h3><a name="hello">hello.html</a></h3>
+<h2><a name="hello">hello.html</a></h2>
 <p>ブラウザで、http://localhost:8080/s2jsf-example/hello/hello.html?message=aaaにアクセスしてみましょう。
 
 Hello aaaと表示されるはずです。このサンプルでは、次のことを学びます。</p>
@@ -169,7 +154,7 @@ m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;...,&lt;/span&gt;を定
 
 たい場合は、このようにspanタグのvalue属性で指定します。</p>
 
-<h3><a name="add">add.html</a></h3>
+<h2><a name="add">add.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>入力値をJavaBeansのプロパティと連動させる方法。</li>
@@ -233,7 +218,7 @@ public class AddActionImpl implements AddAction {
 </pre>
 <p>MethodBindingで呼び出したメソッドの戻り値がnullの場合は、自分自身に遷移することになります。</p>
 
-<h3><a name="forEachList">forEachList.html</a></h3>
+<h2><a name="forEachList">forEachList.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>forEachタグによる繰り返し。</li>
@@ -273,7 +258,7 @@ public class AddActionImpl implements AddAction {
 <p>13行目のanchorタグでhref属性とaction属性を両方指定しています。このように両方指定した場合、hrefは実行時には無視されます。ブラウザで直接プレビューしたときに、ページを遷移させるために記述しているのです。子タグのparamタグでページ遷移のときのパラメータを指定することができます。</p>
 <p>18行目のbuttonタグもaction属性とonclick属性を指定しています。onclick属性のlocation.href='forEachResult.html'の部分は実行時には無視されます。ブラウザで直接プレビューしたときに、ページを遷移させるために記述しているのです。子タグのparamタグでページ遷移のときのパラメータを指定することができます。</p>
 
-<h3><a name="forEachResult">forEachResult.html</a></h3>
+<h2><a name="forEachResult">forEachResult.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>ページの初期処理。</li>
@@ -328,7 +313,7 @@ public class ForEachResultInitActionImpl implements ForEachResultInitAction {
 </pre>
 <p>initialize()メソッドで指定されたインデックスに基づくオブジェクトをforEachDtoプロパティに設定しています。forEachDtoプロパティには、getterメソッドが定義されているので、initialize()メソッドが実行された後、S2JSFによって、forEachDtoプロパティの値が自動的にリクエストの属性(forEachDto)に設定されます。public static final String プロパティ名_EXPORT = &quot;session&quot;;のように定数を宣言することで、リクエストではなくセッションの属性に設定することも出来ます。 </p>
 
-<h3><a name="forEach2List">forEach2List.html</a></h3>
+<h2><a name="forEach2List">forEach2List.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>入力系のタグを含んだforEachタグによる繰り返し。</li>
@@ -371,7 +356,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
     }
 }
 </pre>
-<h3><a name="forEach3List">forEach3List.html</a></h3>
+<h2><a name="forEach3List">forEach3List.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>forEachタグのネスト方法。</li>
@@ -431,7 +416,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 &lt;/components&gt;
 </pre>
 
-<h3><a name="converter">converter.html</a></h3>
+<h2><a name="converter">converter.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>converter属性の使い方。</li>
@@ -454,7 +439,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <p>このようにコンバータをHTMLで個別に定義するのではなく、diconファイルで一元管理することで、コンバータの定義が分散することを防ぐことが出来ます。</p>
 <p>また、label属性に定義した値を、コンバート失敗時のメッセージに使用することが出来ます。それにはConverterがlabel属性に対応している必要があります。標準のConverterについては、それぞれ対応するConverterをS2JSFで用意しています。独自のConverterを作る場合は、S2JSFを参考にしてください。</p>
 
-<h3><a name="validator">validator.html</a></h3>
+<h2><a name="validator">validator.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>validatorタグの使い方。</li>
@@ -504,7 +489,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <p>バリデーションエラーになったときに表示させるメッセージは、messageタグで組み込みます。for属性で対象となるタグのidを指定します。messagesタグでglobalOnly属性をfalseにすることで、messagesタグに表示させることも出来ますが、どのタグでバリデーションエラーがおきたのかをわかりやすくするために、個別のタグのバリデーションエラーは、messageタグを使って表示させたほうが良いと思います。</p>
 <p>また、label属性に定義した値をバリデーションのメッセージに使用することが出来ます。label属性を使用する場合は、UIComponentとValidatorがそれぞれ対応している必要があります。標準のUIComponentとValidatorについては、それぞれ対応するUIComponentとValidatorをS2JSFで用意しています。独自のUIComponent、Validatorを作る場合は、S2JSFを参考にして機能を追加してください。</p>
 
-<h3><a name="checkbox">checkbox.html</a></h3>
+<h2><a name="checkbox">checkbox.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>checkboxの使い方。</li>
@@ -514,7 +499,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 </pre>
 <p>特に難しいところはありませんね。うれしいのは、チェックボックスをオフにしたときも、それがサーバサイドにきちんと伝わることです。</p>
 
-<h3><a name="selectOneMenu">selectOneMenu.html</a></h3>
+<h2><a name="selectOneMenu">selectOneMenu.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>selectタグで直接optionで要素を定義する方法。</li>
@@ -554,7 +539,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <pre>&lt;component name=&quot;selectOneMenuCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
 </pre>
 
-<h3><a name="selectManyCheckbox">selectManyCheckbox.html</a></h3>
+<h2><a name="selectManyCheckbox">selectManyCheckbox.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>selectManyCheckboxで直接checkboxで要素を定義する方法。</li>
@@ -592,7 +577,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <pre>&lt;component name=&quot;selectManyCheckboxCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
 </pre>
 
-<h3><a name="selectManyListbox">selectManyListbox.html</a></h3>
+<h2><a name="selectManyListbox">selectManyListbox.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>selectManyListboxで直接checkboxで要素を定義する方法。</li>
@@ -628,7 +613,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <p>15行目からはじまるselectタグは、items属性で要素を指定しています。この例の場合、個々の要素はJavaBeansなので、さらにitemValue属性とitemLabel属性で、どのプロパティを値として使うのか、どのプロパティをラベルとして使うのかを指定します。selectManyListboxCccItemsは、examples/jsf/dicon/selectmanylistbox.diconで次のように定義されています。</p>
 <pre>&lt;component name=&quot;selectManyListboxCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
 </pre>
-<h3><A name=selectOneRadio>selectOneRadio.html</a></h3>
+<h2><A name=selectOneRadio>selectOneRadio.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>selectOneRadioで直接radioで要素を定義する方法。 </li>
@@ -720,7 +705,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 &lt;/component&gt;
 </pre>
 
-<h3><a name=inputTextarea>inputTextarea.html</a></h3>
+<h2><a name=inputTextarea>inputTextarea.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>textareaの入力値をJavaBeansのプロパティと連動させる方法。</li>
@@ -737,7 +722,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 
 <p>3行目からはじまるtextareaタグのvalue属性で、JavaBeansのプロパティを連動させています。入力した値は、バリデーションがOKなら、JavaBeansのプロパティに格納され、NGの場合は、入力された値がそのままページに表示されることになります。textareaタグの要素は、あくまでもブラウザでのプレビュー用です。</p>
 
-<h3><a name="inputSecret">inputSecret.html</a></h3>
+<h2><a name="inputSecret">inputSecret.html</a></h2>
 <p>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
@@ -754,7 +739,7 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <pre>
 バリデーションエラー &quot;password&quot;: を値を入力して下さい
 </pre>
-<h3><a name="pageTran1">pageTran1.html</a></h3>
+<h2><a name="pageTran1">pageTran1.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
 <ul>
 <li>エラーページの設定方法。</li>
@@ -826,7 +811,7 @@ public class Page2InitActionImpl implements Page2InitAction {
 }
 </pre>
 <p>この処理も先ほどと同じようにErrorPage2RuntimeExceptionを発生させています。ErrorPage2RuntimeExceptionはjsfErrorPage.diconを見るとerrorPage2.htmlに遷移するように設定してありますので、errorPage2.htmlに遷移して設定したメッセージが表示されます。</p>
-<h3><a name="employeeManagement">Employee Management</a></h3>
+<h2><a name="employeeManagement">Employee Management</a></h2>
 <p>このサンプルの従業員管理アプリケーションでは新規、修正、削除、照会を行います。このサンプルを動かす前にs2jsf-example/WEB-INF/binにあるrunHsqldb.batでHSQLDBを起動させておいてください。</p>
 <p>s2jsfでは、Actionクラス、ロジッククラス、dicon、Dto、Daoという構成でなりたっています。今回のサンプルは以下のようになっています。</p>
 <pre>
@@ -1367,7 +1352,7 @@ public boolean existEmployee(Integer empno) {
 <p>引数empnoをキーにテーブルEMPを検索し、該当レコードをjava.util.Listに格納して、この戻り値がnullでない場合trueを返します。呼び出し元のif文ではこれを使ってCREATE_MODEで同じempnoを持つレコードがテーブルEMPにあれば例外EmployeeAlreadyExistRuntimeExceptionをスローしています。</p>
 <p>EmployeeAlreadyExistRuntimeExceptionはjava.lang.RuntimeExceptionのサブクラス(正確には間にexamples.jsf.exceptionAppRuntimeExceptionが入る)なのでthrowsを書く必要がありません。結果「従業員(xxxx)は既に存在します」というメッセージとして表示されます。これはこのemployeeEditActionにactionInterceptorChainが適用されるからです。</br>
 empnoが重複していなければ"employeeConfirm"が返され、/employee/employeeConfirm.htmlに遷移します。</p>
-<h3><a name="EmployeeConfirm">employeeConfirm.html</a></h3>
+<h3><a name="employeeConfirm">employeeConfirm.html</a></h3>
 <p>employeeSearch.htmlでcreateボタンが押された後に表示されるemployee/employeeConfirm.htmlを見ていきましょう。見ていく順番は以下のようになります。</p>
 <ul>
 <li><a href="#EmployeeConfirmInitialize">ページの初期処理の説明</a></li>

@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- don't edit start -->
+<head>
+<title>Seasar - DI Container with AOP - </title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link href="seasar_b.css" type="text/css" rel="stylesheet" media="screen" />
+<link href="seasar_p.css" type="text/css" rel="stylesheet" media="print" />
+<script src="seasar_b.js" type="text/JavaScript" language="JavaScript"></script>
+</head>
+<body onload="preload('ja')">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" align="left"><tr>
+<td align="left" valign="top" width="780"><table width="780" border="0" cellspacing="0" cellpadding="0" class="white">
+<tr><td colspan="7"><img height="5" width="780" src="images/top01_b.gif" alt=""></td></tr>
+<tr><td><img height="117" width="235" src="images/top02_b.gif" alt="Seasar"></td>
+<td colspan="3"><img height="117" width="289" src="images/top03.gif" alt="DI Container with AOP"></td>
+<td colspan="3"><img height="117" width="256" src="images/spacer.gif" alt=""></td>
+</tr><tr><td rowspan="2"><img src="images/top04.gif" alt="" height="49" width="235"></td>
+<td><a href="http://www.seasar.org/index.html"><img src="images/menu01_b_ja.gif" height="30" width="78" border="0" alt="" id="menu01" onmouseover="swap(1)" onmouseout="restore(1)"></a></td>
+<td><a href="http://www.seasar.org/projects.html"><img src="images/menu02_b_ja.gif" height="30" width="101" border="0" alt="" id="menu02" onmouseover="swap(2)" onmouseout="restore(2)"></a></td>
+<td><a href="http://www.seasar.org/products.html"><img src="images/menu03_b_ja.gif" height="30" width="110" border="0" alt="" id="menu03" onmouseover="swap(3)" onmouseout="restore(3)"></a></td>
+<td><a href="http://www.seasar.org/resources.html"><img src="images/menu04_b_ja.gif" height="30" width="113" border="0" alt="" id="menu04" onmouseover="swap(4)" onmouseout="restore(4)"></a></td>
+<td><img src="images/menu05_b_ja.gif" height="30" width="109" border="0" alt="" id="menu05" onmouseover="swap(5)" onmouseout="restore(5)"></td>
+<td><img height="30" width="34" src="images/menu06.gif" alt=""></td></tr><tr>
+<td colspan="6"><img height="19" width="545" src="images/spacer.gif" alt=""></td></tr></table>
+<table  width="780" border="0" cellspacing="0" cellpadding="0" height="100%" class="white">
+<tr align="left" valign="top"><td width="18"><img height="14" width="18" src="images/spacer.gif" alt=""></td><td width="744" class="main">
+<!-- don't edit end -->
+<!-- document start -->
+<ul>
+<li><a href="#setup">セットアップ</a></li>
+<li><a href="#taglib">JSF標準以外のtaglibを使うには</a></li>
+</ul>
+
+<h2><a name="setup">セットアップ</a></h2>
+<p>Seasar2と同様にJDK1.4以上が必要です。s2-jsf-x.x.x.zipを解凍し、できたs2jsfディレクトリをEclipseで
+「ファイル→インポート→既存のプロジェクトをワークスペースへ」してインポートしてください。</p>
+<p>サンプルはs2-jsf-example-x.x.x.jarとして別途用意されているので、ダウンロードして解凍してください。先程と同様
+に、Eclipseで、「ファイル→インポート→既存のプロジェクトをワークスペースへ」でインポートします。サンプルは、
+<a href="http://jakarta.apache.org/tomcat/">Tomcat5</a>、
+<a href="http://www.sysdeo.com/eclipse/tomcatPlugin.html">Tomcat Plugin</a>を使うことを前提にしています。もし、
+まだインストールしていない場合は、インストールしておいてください。</p>
+<p>Tomcatを起動し、ブラウザでhttp://localhost:8080/s2jsf-exampleにアクセスすると、S2JSFのサンプルを見ることが
+出来ます。</p>
+
+<h2><a name="taglib">JSF標準以外のtaglibを使うには</a></h2>
+<p>
+S2JSFではJSF標準のタグライブラリ(プレフィクス"h"と"f")と、S2JSF用のタグライブラリ
+(プレフィクス"s")を使用できるようになっています。
+もちろんこれら以外のカスタムタグライブラリも使用可能です。
+そのためには次の設定が必要です。
+<ol>
+	<li>*.tldファイルを配置する (必要な場合のみ)</li>
+	<li>"prefix"と"uri"をjsf.diconへ指定する</li>
+</ol>
+</p>
+
+<h3>tldファイルを配置する</h3>
+<p>tldファイルの配置には2通りの方法があります。</p>
+<h4>jarへ含める</h4>
+<p>
+tldをjarファイルへ含める場合は、META-INFディレクトリ配下へ置くようにしてください。
+S2JSFはWEB-INF/lib内に置かれているjarファイルのMETA-INFディレクトリ配下にある
+tldファイルを自動的に探します。
+</p>
+<p>
+jsf.diconが次のようになっていることを確認してください。
+<pre>
+&lt;component class="org.seasar.jsf.runtime.ServletContextTaglibManagerImpl"&gt;
+    &lt;initMethod name="init"/&gt;
+    &lt;destroyMethod name="destroy"/&gt;
+&lt;/component&gt;
+</pre>
+</p>
+
+<h4>WEB-INF配下へ配置する</h4>
+<p>
+tldをjarファイルへ含めない場合は、WEB-INF配下へtldを置くようにしてください。
+S2JSFではWEB-INFディレクトリ配下に置かれているtldファイルを自動的に探すクラスを
+用意してあります。
+</p>
+<p>
+jsf.diconを次のように設定してください。
+<pre>
+&lt;!--
+&lt;component class="org.seasar.jsf.runtime.ServletContextTaglibManagerImpl"&gt;
+    &lt;initMethod name="init"/&gt;
+    &lt;destroyMethod name="destroy"/&gt;
+&lt;/component&gt;
+--&gt;
+&lt;component class="org.seasar.jsf.runtime.CompositeTaglibManager"&gt;
+    &lt;!--
+    &lt;initMethod name="addTaglibManager"&gt;
+        &lt;arg&gt;
+            &lt;component class="org.seasar.jsf.runtime.WebappConfigTaglibManagerImpl"&gt;
+                &lt;initMethod name="init"/&gt;
+                &lt;destroyMethod name="destroy"/&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    --&gt;
+    &lt;initMethod name="addTaglibManager"&gt;
+        &lt;arg&gt;
+            &lt;component class="org.seasar.jsf.runtime.FileSystemTaglibManagerImpl"&gt;
+                &lt;initMethod name="init"/&gt;
+                &lt;destroyMethod name="destroy"/&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name="addTaglibManager"&gt;
+        &lt;arg&gt;
+            &lt;component class="org.seasar.jsf.runtime.ServletContextTaglibManagerImpl"&gt;
+                &lt;initMethod name="init"/&gt;
+                &lt;destroyMethod name="destroy"/&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
+</pre>
+</p>
+
+<h3>"prefix"と"uri"をjsf.diconへ指定する</h3>
+<p>
+次のようなtldファイルをS2JSFから使用するには、
+<pre>
+&lt;taglib&gt;
+    &lt;tlib-version&gt;1.0&lt;/tlib-version&gt;
+    &lt;jsp-version&gt;1.2&lt;/jsp-version&gt;
+    &lt;short-name&gt;foo&lt;/short-name&gt;
+    &lt;uri&gt;<strong>http://example.com/</strong>&lt;/uri&gt;
+    [...]
+&lt;/taglib&gt;
+</pre>
+jsf.diconへ次のように追加設定します。
+<pre>
+&lt;component class="org.seasar.jsf.runtime.JsfConfigImpl"&gt;
+    &lt;initMethod name="addTaglibUri"&gt;
+        &lt;arg&gt;"h"&lt;/arg&gt;
+        &lt;arg&gt;"http://java.sun.com/jsf/html"&lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name="addTaglibUri"&gt;
+        &lt;arg&gt;"f"&lt;/arg&gt;
+        &lt;arg&gt;"http://java.sun.com/jsf/core"&lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name="addTaglibUri"&gt;
+        &lt;arg&gt;"s"&lt;/arg&gt;
+        &lt;arg&gt;"http://www.seasar.org/jsf"&lt;/arg&gt;
+    &lt;/initMethod&gt;
+<strong>    &lt;initMethod name="addTaglibUri"&gt;
+        &lt;arg&gt;"foo"&lt;/arg&gt;
+        &lt;arg&gt;"http://example.com/"&lt;/arg&gt;
+    &lt;/initMethod&gt;</strong>
+&lt;/component&gt;
+</pre>
+addTaglibUriの第1引数が"prefix"、第2引数が"uri"です。
+uriはtldのuriと合わせる必要があります。
+</p>
+<p>
+この設定を行うことで、J2JSFのhtmlからプレフィクス"foo"でこのtaglibを使用できるように
+なります。
+</p>
+
+<!-- document end -->
+<!-- don't edit start -->
+</td>
+<td width="14"><img height="14" width="14" src="images/spacer.gif" alt=""></td>
+</tr><tr>
+<td width="14"><img height="30" width="14" src="images/spacer.gif" alt=""></td>
+<td width="766"><img height="30" width="592" src="images/spacer.gif" alt=""></td>
+</tr><tr>
+<td width="14"><img height="14" width="14" src="images/spacer.gif" alt=""></td>
+<td width="766" class="copyright">Copyright&copy; 2004-2005, The Seasar Foundation and the others. All rights reserved.</td>
+</tr></table>
+<td class="backright" align="left" valign="top">&nbsp;</td></tr><tr>
+<td class="backunder" align="left"  valign="top" width="780" height="16">&nbsp;</td>
+<td class="backcorner" align="left" valign="top" height="16">&nbsp;</td>
+</tr></table></body>
+<!-- don't edit end -->
+</html>
