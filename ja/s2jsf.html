@@ -167,23 +167,35 @@ m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;...,&lt;/span&gt;を定
 </pre>
 <p>headタグの部分は、実行時には無視されます。ブラウザでのプレビュー用です。</p>
 <p>10行目の&lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;で、エラーが起きたときのメッセージを出力する準備をしています。globalOnly属性がtrueの場合、個別の入力項目には関係のない(globalな)エラーのメッセージだけが出力されます。falseにするとglobalなメッセージも個別のメッセージも出力するようになります。</p>
-<p>11行目の&lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt;で、入出力用のタグとJavaBeansのプロパティを連動させています。入力した値は、バリデーションがOKなら、JavaBeansのプロパティに格納され、NGの場合は、入力された値がそのままページに表示されることになります。このように入出力値の管理をきちんと行ってくれるところが、JSFの偉いところです。StrutsのようにActionFormでとりあえずStringで受け取るなんて事をする必要がないのです。</p>
+<p>
+11行目の&lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt;で、
+入出力用のタグとJavaBeansのプロパティを連動させています。
+入力した値は、バリデーションがOKならJavaBeansのプロパティに格納され、
+NGの場合は入力された値がそのままページに表示されることになります。
+このように入出力値の管理をきちんと行ってくれるところがJSFの偉いところです。
+StrutsのようにActionFormでとりあえずStringで受け取るなんて事をする必要がないのです。
+</p>
 <p>★addDtoはどこで定義されているのでしょうか。addDtoは、examples/jsf/dicon/add.diconの中で、次のように定義されています。</p>
 <pre>&lt;component name=&quot;addDto&quot; class=&quot;examples.jsf.dto.AddDto&quot; instance=&quot;request&quot;/&gt;
 </pre>
-<p>instance属性がrequestになっているので、addDtoはrequestのスコープで管理されることになります。また、add.diconは、ルートの定義であるapp.diconから次のようにincludeされています。</p>
+<p>★instance属性がrequestなので、addDtoはrequestスコープで管理されることになります。
+また、add.diconはルートの定義であるapp.diconから次のようにincludeされています。</p>
 <pre>&lt;include path=&quot;examples/jsf/dicon/add.dicon&quot;/&gt;
 </pre>
 <p>★14行目の&lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;で、ボタンがクリックされたときにJavaBeansのメソッドを呼び出す設定をしています。ボタンやリンクのaction属性で、#{変数名.メソッド名}のように記述することをMethodBindingと呼びます。MethodBindingで呼び出されるメソッドは、引数がなく、戻り値がStringでなければいけません。addActionはadd.diconで次のように定義されています。</p>
 <pre>&lt;component name=&quot;addAction&quot; class=&quot;examples.jsf.action.impl.AddActionImpl&quot; instance=&quot;request&quot;/&gt;
 </pre>
-<p>Actionクラスは、入力された内容をプロパティ経由で受け取ることになるので、instance属性をrequestにします。それでは、AddActionインターフェース、AddActionImplクラスを見てみましょう。インターフェースと実装を必ず分離しなければならないということはないのですが、このように分離したほうが、仕様が明確に伝わり易いと思います。</p>
+<p>★Actionクラスは、入力された内容をプロパティ経由で受け取ることになるので、instance属性をrequestにします。
+それでは、AddActionインターフェース・AddActionImplクラスを見てみましょう。
+インターフェースと実装を必ず分離しなければならないということはないのですが、
+このように分離したほうが、仕様が明確に伝わり易いと思います。</p>
 <pre>
 package examples.jsf.action;
 
 public interface AddAction {
 
     public String calculate();
+
 }
 </pre>
 <pre>
@@ -213,7 +225,10 @@ public class AddActionImpl implements AddAction {
     }
 }
 </pre>
-<p>入力された値を受け取るために、addDtoというプロパティのsetterメソッドを定義しています。S2JSFは、MethodBindingで指定したメソッドを呼び出す直前にsetterメソッドの定義されているプロパティがないか調べ、もしある場合は、プロパティ名と同様の変数が、リクエストの属性、パラメータ、セッションの属性、S2Containerに存在するか調べ、もし存在する場合には、自動的にsetterメソッドを呼び出し、その変数を設定します。</p>
+<p>入力された値を受け取るために、addDtoというプロパティのsetterメソッドを定義しています。
+S2JSFは、MethodBindingで指定したメソッドを呼び出す直前にsetterメソッドの定義されているプロパティがないか調べ、
+もしある場合は、プロパティ名と同様の変数が、リクエスト属性・リクエストパラメータ・セッション属性・S2Containerに存在するか調べ、
+もし存在する場合には、自動的にsetterメソッドを呼び出し、その変数を設定します。</p>
 <p>★addLogicという変数は、どこにも定義されていないのですが、プロパティの型がインターフェースの場合、S2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。AddLogicを実装したクラスは、add.diconで次のように定義されています。</p>
 <pre>&lt;component class=&quot;examples.jsf.logic.impl.AddLogicImpl&quot;/&gt;
 </pre>
@@ -393,9 +408,9 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 09:        &lt;/span&gt;
 10:    &lt;/table&gt;
 11:    &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;
-&lt;/form&gt;
+12:&lt;/form&gt;
 </pre>
-<p>5行目を見てみるとわかるように、forEachタグの中でforEachタグを使用して繰り返しを行っています。forEach3DtoListは/examples/jsf/dicon/foreach.diconを見るとListの中にListがありますので、初めのforEachタグでvar属性をeとしているので2つ目のforEachタグでitems属性を&quot;#{e}&quot;とすることでforEach3DtoListの中のListを使用して繰り返し処理を行います。</p>
+<p>5行目を見てみるとわかるように、forEachタグの中でforEachタグを使用して繰り返しを行っています。forEach3DtoListはexamples/jsf/dicon/foreach.diconを見るとListの中にListがありますので、初めのforEachタグでvar属性をeとしているので2つ目のforEachタグでitems属性を&quot;#{e}&quot;とすることでforEach3DtoListの中のListを使用して繰り返し処理を行います。</p>
 <pre>
 &lt;components&gt;
     &lt;component name=&quot;forEach3DtoList&quot; class=&quot;java.util.ArrayList&quot; instance=&quot;session&quot;&gt;
@@ -498,7 +513,8 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
     &lt;property name=&quot;minimum&quot;&gt;2&lt;/property&gt;
 &lt;/component&gt;
 &lt;component name=&quot;greaterEqualValidator&quot; class=&quot;org.seasar.jsf.validator.S2GreaterEqualValidator&quot;
-    instance=&quot;prototype&quot; /&gt;
+    instance=&quot;prototype&quot;
+/&gt;
 </pre>
 
 <p>S2GreaterEqualValidatorは、targetIdで関連チェックする相手を指定するのですが、diconファイルの定義は1つでhtmlでtargetIdを追加するようになっています。同じような処理で複数指定する場合があるので、diconファイルのinstance属性はprototypeにします。</p>
@@ -739,8 +755,12 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 06:&lt;/form&gt;
 </pre>
 
-<p>3行目からはじまるtextareaタグのvalue属性で、JavaBeansのプロパティを連動させています。入力した値は、バリデーションがOKなら、JavaBeansのプロパティに格納され、NGの場合は、入力された値がそのままページに表示されることになります。textareaタグの要素は、あくまでもブラウザでのプレビュー用です。</p>
-
+<p>
+3行目からはじまるtextareaタグのvalue属性で、JavaBeansのプロパティを連動させています。
+入力した値は、バリデーションがOKならJavaBeansのプロパティに格納され、
+NGの場合は入力された値がそのままページに表示されることになります。
+textareaタグの要素は、あくまでもブラウザでのプレビュー用です。<
+/p>
 <h2><a name="inputSecret">inputSecret.html</a></h2>
 <p>
 <p>このサンプルでは、次のことを学びます。</p>
@@ -780,13 +800,16 @@ public class Page1ActionImpl implements Page1Action {
     }
 }
 </pre>
-<p>examples.jsf.action.impl.Page1ActionImplクラスのthrowExceptionはErrorPage1RuntimeExceptionを発生させているだけです。ErrorPage1RuntimeExceptionはjava.lang.RuntimeExceptionのサブクラスでメッセージに"errorPage1"をセットしています。ErrorPage1RuntimeExceptionのエラーが発生した場合の画面の遷移先はjsfErrorPage.diconで以下のように設定しています。</p>
+<p>examples.jsf.action.impl.Page1ActionImplクラスのthrowExceptionはErrorPage1RuntimeExceptionを発生させているだけです。
+ErrorPage1RuntimeExceptionはjava.lang.RuntimeExceptionのサブクラスでメッセージに"errorPage1"をセットしています。
+ErrorPage1RuntimeExceptionのエラーが発生した場合の画面の遷移先はjsfErrorPage.diconで以下のように設定しています。
+</p>
 <pre>
 &lt;component class=&quot;org.seasar.jsf.runtime.ErrorPageManagerImpl&quot;&gt;
-    <b>&lt;initMethod name=&quot;addErrorPage&quot;&gt;
+    <strong>&lt;initMethod name=&quot;addErrorPage&quot;&gt;
         &lt;arg&gt;@examples.jsf.exception.ErrorPage1RuntimeException@class&lt;/arg&gt;
-        &lt;arg&gt;&quot;/errorpage/errorPage1.html&quot;&lt;/arg&gt;</b>
-    &lt;/initMethod&gt;
+        &lt;arg&gt;&quot;/errorpage/errorPage1.html&quot;&lt;/arg&gt;
+    &lt;/initMethod&gt;</strong>
     &lt;initMethod name=&quot;addErrorPage&quot;&gt;
         &lt;arg&gt;@examples.jsf.exception.ErrorPage2RuntimeException@class&lt;/arg&gt;
         &lt;arg&gt;&quot;/errorpage/errorPage2.html&quot;&lt;/arg&gt;
@@ -1127,7 +1150,7 @@ public class EmployeeSearchInitActionImpl implements EmployeeSearchInitAction {
 <h4><a name="EmployeeSearchAction">Actionクラスの説明</a></h4>
 <p>createボタンのアクション属性のemployeeSearchActionを見ていきましょう。</p>
 <h5><a name="EmployeeSearchActionDicon">Actionクラスのdiconファイル</a></h5>
-<p>employeeSearchActionはexamples/jsf/dicon/employee.diconで以下のように定義されています。aspectタグのactionInterceptorChainは先ほどの<a href="#EmployeeSearchInitializeDicon">ページの初期処理のdiconファイル</a>で説明した通りです。</p>
+<p>★employeeSearchActionはexamples/jsf/dicon/employee.diconで以下のように定義されています。aspectタグのactionInterceptorChainは先ほどの<a href="#EmployeeSearchInitializeDicon">ページの初期処理のdiconファイル</a>で説明した通りです。</p>
 <pre>
 &lt;component name=&quot;employeeSearchAction&quot; 
         class=&quot;examples.jsf.action.impl.EmployeeSearchActionImpl&quot; instance=&quot;request&quot;&gt;
