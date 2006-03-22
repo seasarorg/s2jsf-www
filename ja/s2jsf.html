@@ -29,7 +29,12 @@
 <!-- don't edit end -->
 <!-- document start -->
 <h2>サンプル解説</h2>
+<p>
+s2jsf-exmapleのプログラムを順に解説します。
+実際に動作するサンプルを参考に、S2JSFの使い方を学習しましょう。
+</p>
 <ul>
+<li><a href="#app.dicon">app.diconでのコンポーネント自動登録</a></li>
 <li><a href="#hello">hello.html</a></li>
 <li><a href="#add">add.html</a></li>
 <li><a href="#forEachList">forEachList.html</a></li>
@@ -56,6 +61,209 @@
 <li><a href="#tips">開発Tips</a></li>
 </ul>
 
+<h2><a name="app.dicon">app.diconでのコンポーネント自動登録</a></h2>
+app.diconでは、
+<a href="http://s2container.seasar.org/ja/DIContainer.html#ComponentAutoRegister">コンポーネントの自動登録</a>機能・
+<a href="http://s2container.seasar.org/ja/DIContainer.html#AspectAutoRegister">アスペクトの自動登録</a>機能を用いて、
+Action・Dto・LogicクラスをS2Containerへ登録しています。Action・Logicへは同時にアスペクトも登録しています。
+
+<h3><a name="AutoRegisterForAction">Action自動登録</a></h3>
+<p>
+app.diconでActionをS2Containerへ登録している箇所はこのようになっています。
+<pre>
+01:&lt;component
+02:    class="org.seasar.framework.container.autoregister.FileSystemComponentAutoRegister"
+03:&gt;
+04:    &lt;property name="instanceDef"&gt;
+05:        @org.seasar.framework.container.deployer.InstanceDefFactory@REQUEST
+06:    &lt;/property&gt;
+07:    &lt;initMethod name="addClassPattern"&gt;
+08:        &lt;arg&gt;"examples.jsf.action.impl"&lt;/arg&gt;
+09:        &lt;arg&gt;".*ActionImpl"&lt;/arg&gt;
+10:    &lt;/initMethod&gt;
+11:&lt;/component&gt;
+12:
+13:&lt;component
+14:    class="org.seasar.framework.container.autoregister.AspectAutoRegister"
+15:&gt;
+16:    &lt;property name="interceptor"&gt;actionInterceptorChain&lt;/property&gt;
+17:    &lt;initMethod name="addClassPattern"&gt;
+18:        &lt;arg&gt;"examples.jsf.action.impl"&lt;/arg&gt;
+19:        &lt;arg&gt;".*ActionImpl"&lt;/arg&gt;
+20:    &lt;/initMethod&gt;
+21:&lt;/component&gt;
+</pre>
+01～11行目で、名称が"ActionImpl"で終わるクラスをrequestスコープへ登録しています。
+これは、Actionクラスは入力された内容をsetter経由で受け取ることになるためです。
+component名は、クラス名の先頭1文字を小文字にし、末尾のImplを除いた値になります。
+クラス名が"aaa.bbb.FooActionImpl"の場合は"fooAction"がコンポーネント名になります。
+</p>
+<p>
+13～21行目で、同じく"ActionImpl"で名称が終わるクラスにactionInterceptorChainアスペクトを登録しています。
+actionInterceptorChainはexamples/jsf/dicon/allaop.diconで設定されています。
+<pre>
+01:&lt;component
+02:    name="actionThrowsInterceptor"
+03:    class="examples.jsf.interceptor.ActionThrowsInterceptor"
+04:/&gt;
+05:
+06:&lt;component
+07:    name="actionInterceptorChain"
+08:    class="org.seasar.framework.aop.interceptors.InterceptorChain"
+09:&gt;
+11:    &lt;initMethod name="add"&gt;&lt;arg&gt;aop.traceInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
+12:    &lt;initMethod name="add"&gt;&lt;arg&gt;actionThrowsInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
+13:&lt;/component&gt;
+</pre>
+org.seasar.framework.aop.interceptors.InterceptorChainは、複数のInterceptorをグルーピング化し、利用しやすくします。
+ここではaop.traceInterceptorとactionThrowsInterceptorを1つにまとめています。
+1つ目のaop.traceInterceptorはaop.diconで以下のように定義しています。
+<pre>
+&lt;component name=&quot;traceInterceptor&quot;
+    class=&quot;org.seasar.framework.aop.interceptors.TraceInterceptor&quot;
+/&gt;
+</pre>
+org.seasar.framework.aop.interceptors.TraceInterceptorは、S2AOPで用意されているInterceptorで、
+呼び出しの前後にトレース処理を行うものです。
+actionInterceptorChainの2つ目のactionThrowsInterceptorは、
+examples/jsf/dicon/allaop.diconで以下のように定義されています。
+<pre>
+&lt;component name=&quot;actionThrowsInterceptor&quot; 
+    class=&quot;examples.jsf.interceptor.ActionThrowsInterceptor&quot;
+/&gt;
+</pre>
+<p>examples.jsf.interceptor.ActionThrowsInterceptorは独自のThrowsInterceptorで以下のようになっています。</p>
+<pre>
+public class ActionThrowsInterceptor extends ThrowsInterceptor {
+    public String handleThrowable(AppRuntimeException ex, MethodInvocation invocation)throws Throwable{
+        FacesContext context = FacesContext.getCurrentInstance();
+        context.addMessage(null, MessageUtil.getErrorMessage(ex.getMessageId(), ex.getArgs()));
+        return null;
+    }
+}
+</pre>
+AppRuntimeExceptionからID/引数を取り出してFacesMessageを構築し、FacesContextへセットします。
+このようにエラー処理をInterceptorにまかせれば、Actionの実装はPOJOで作成することができます。
+</p>
+
+<h3><a name="AutoRegisterForDto">DTO自動登録</a></h3>
+<p>
+app.diconでDTOをS2Containerへ登録している箇所はこのようになっています。
+<pre>
+&lt;component
+    class="org.seasar.framework.container.autoregister.FileSystemComponentAutoRegister"
+&gt;
+    &lt;property name="instanceDef"&gt;
+        @org.seasar.framework.container.deployer.InstanceDefFactory@REQUEST
+    &lt;/property&gt;
+    &lt;initMethod name="addClassPattern"&gt;
+        &lt;arg&gt;"examples.jsf.dto"&lt;/arg&gt;
+        &lt;arg&gt;".*Dto"&lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
+</pre>
+名称が"Dto"で終わるクラスをrequestスコープへ登録しています。
+</p>
+
+<h3><a name="AutoRegisterForLogic">Logic自動登録</a></h3>
+<p>
+app.diconでLogicをS2Containerへ登録している箇所はこのようになっています。
+<pre>
+01:&lt;component
+02:    class="org.seasar.framework.container.autoregister.FileSystemComponentAutoRegister"
+03:&gt;
+04:    &lt;initMethod name="addClassPattern"&gt;
+05:        &lt;arg&gt;"examples.jsf.logic.impl"&lt;/arg&gt;
+06:        &lt;arg&gt;".*LogicImpl"&lt;/arg&gt;
+07:    &lt;/initMethod&gt;
+08:&lt;/component&gt;
+09:
+10:&lt;component
+11:    class="org.seasar.framework.container.autoregister.AspectAutoRegister"
+12:&gt;
+13:    &lt;property name="interceptor"&gt;logicInterceptorChain&lt;/property&gt;
+14:    &lt;initMethod name="addClassPattern"&gt;
+15:        &lt;arg&gt;"examples.jsf.logic.impl"&lt;/arg&gt;
+16:        &lt;arg&gt;".*LogicImpl"&lt;/arg&gt;
+17:    &lt;/initMethod&gt;
+18:&lt;/component&gt;
+</pre>
+01～08行目で、名称が"LogicImpl"で終わるクラスをrequestスコープへ登録しています。
+10～18行目で、同じく"LogicImpl"で名称が終わるクラスにlogicInterceptorChainアスペクトを登録しています。
+logicInterceptorChainはexamples/jsf/dicon/allaop.diconで設定されています。
+<pre>
+&lt;component
+    name="logicInterceptorChain"
+    class="org.seasar.framework.aop.interceptors.InterceptorChain"
+&gt;
+    &lt;initMethod name="add"&gt;&lt;arg&gt;aop.traceThrowsInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
+    &lt;initMethod name="add"&gt;&lt;arg&gt;aop.traceInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
+    &lt;initMethod name="add"&gt;&lt;arg&gt;j2ee.requiredTx&lt;/arg&gt;&lt;/initMethod&gt;
+&lt;/component&gt;
+</pre>
+1つ目と2つ目は、S2AOPで用意されているInterceptorでトレース処理を行うものです。
+詳しくは<a href="http://s2container.seasar.org/ja/aop.html#AOPInterceptor">S2AOPで用意されているInterceptor</a>を参照してください。
+3つめのj2ee.requiredTxはトランザクション制御用コンポーネントです。トランザクションが開始されていなければ自動的にトランザクションを開始します。 
+既にトランザクションが開始されていれば、そのトランザクションを引き継ぎます。
+詳しくは<a href="http://s2container.seasar.org/ja/tx.html">トランザクションの自動制御</a>を参照してください。
+</p>
+
+<h3>Dao自動登録</h3>
+<p>
+app.diconでDaoをS2Containerへ登録している箇所はこのようになっています。
+<pre>
+01:&lt;component 
+02:    class="org.seasar.framework.container.autoregister.FileSystemComponentAutoRegister"
+03:&gt;
+04:    &lt;initMethod name="addClassPattern"&gt;
+05:        &lt;arg&gt;"examples.jsf.dao"&lt;/arg&gt;
+06:        &lt;arg&gt;".*Dao"&lt;/arg&gt;
+07:    &lt;/initMethod&gt;
+08:&lt;/component&gt;
+09:
+11:&lt;component
+12:    class="org.seasar.framework.container.autoregister.AspectAutoRegister"
+13:&gt;
+14:    &lt;property name="interceptor"&gt;daoInterceptorChain&lt;/property&gt;
+15:    &lt;initMethod name="addClassPattern"&gt;
+16:        &lt;arg&gt;"examples.jsf.dao"&lt;/arg&gt;
+17:        &lt;arg&gt;".*Dao"&lt;/arg&gt;
+18:    &lt;/initMethod&gt;
+19:&lt;/component&gt;
+</pre>
+01～08行目で、名称が"Dao"で終わるクラス(インタフェース)をrequestスコープへ登録しています。
+10～18行目で、同じく"Dao"で名称が終わるクラス(インタフェース)にdaoInterceptorChainアスペクトを登録しています。
+daoInterceptorChainはexamples/jsf/dicon/allaop.diconで設定されています。
+<pre>
+&lt;component
+    name="daoInterceptorChain"
+    class="org.seasar.framework.aop.interceptors.InterceptorChain"
+&gt;
+    &lt;initMethod name="add"&gt;&lt;arg&gt;aop.traceInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
+    &lt;initMethod name="add"&gt;&lt;arg&gt;dao.interceptor&lt;/arg&gt;&lt;/initMethod&gt;
+&lt;/component&gt;
+</pre>
+aspectタグのうちdao.interceptorは、dao.diconで定義されています。
+これはS2Daoを機能させるためのInterceptor(org.seasar.dao.interceptors.S2DaoInterceptor)であり、
+org.seasar.dao.impl.DaoMetaDataFactoryImplはS2DaoInterceptorのコンストラクタの引数となるのでとともに定義されています。</p>
+<pre>
+&lt;components namespace=&quot;dao&quot;&gt;
+    &lt;include path=&quot;j2ee.dicon&quot;/&gt;
+    &lt;component 
+        class=&quot;org.seasar.dao.impl.DaoMetaDataFactoryImpl&quot;/&gt;
+    &lt;component name=&quot;interceptor&quot;
+        class=&quot;org.seasar.dao.interceptors.S2DaoInterceptor&quot;/&gt;
+&lt;/components&gt;
+</pre>
+<p>これらの定義によりEmployeeDtoDao・DepartmentDtoDaoはインタフェースに対して、
+実装クラスを自動的に生成して、EmployeeLogicImplのプロパティに設定しています。
+
+
+
+
+
+</p>
+
 <h2><a name="hello">hello.html</a></h2>
 <p>ブラウザで、http://localhost:8080/s2jsf-example/hello/hello.html?message=aaaにアクセスしてみましょう。
 
@@ -72,7 +280,19 @@ Hello aaaと表示されるはずです。このサンプルでは、次のこ�
 <li>ValueBindingを使って文字列を出力する方法。</li>
 </ul>
 <p>それでは、HTMLの中身を見てみましょう。 </p>
-<pre>01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot; m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;<br>02:&lt;head&gt;<br>03:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;<br>04:&lt;title&gt;Hello&lt;/title&gt;<br>05:&lt;/head&gt;<br>06:&lt;body&gt;<br>07:    &lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;Hello&quot;/&gt;<br>08:    &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;<br>09:        Hello &lt;span m:value=&quot;#{message}&quot;&gt;hoge&lt;/span&gt;<br>10:    &lt;/span&gt;<br>11:&lt;/body&gt;<br>12:&lt;/html&gt;</pre>
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot; m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
+02:&lt;head&gt;
+03:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;
+04:&lt;title&gt;Hello&lt;/title&gt;
+05:&lt;/head&gt;
+06:&lt;body&gt;
+07:    &lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;Hello&quot;/&gt;
+08:    &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;
+09:        Hello &lt;span m:value=&quot;#{message}&quot;&gt;hoge&lt;/span&gt;
+10:    &lt;/span&gt;
+11:&lt;/body&gt;
+12:&lt;/html&gt;</pre>
 <p>1行目のxmlns:m=&quot;http://www.seasar.org/maya&quot;で名前空間を指定しています。この
 
 URI(http://www.seasar.org/maya)は固定です。プレフィックスのmは任意の値を指定することが出来ますが、慣例的にmを
@@ -87,7 +307,39 @@ URI(http://www.seasar.org/maya)は固定です。プレフィックスのmは任
 アウトを定義し、個別のページでは、ベースとなるページを継承して特定の部分(例えばボディ)だけを上書きするという
 
 ことが可能になっています。それでは、layout.htmlを見てみましょう。</p>
-<pre>01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;<br>02:&lt;head&gt;<br>03:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;<br>04:&lt;link m:inject=&quot;s:link&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/css/global.css&quot;/&gt;<br>05:&lt;title m:value=&quot;#{layoutTitle}&quot;/&gt;<br>06:&lt;/head&gt;<br>07:&lt;body&gt;<br>08:&lt;table border=&quot;0&quot; cellspacing=&quot;5&quot;&gt;<br>09:&lt;tr&gt;<br>10:  &lt;td colspan=&quot;2&quot;&gt;&lt;span m:inject=&quot;s:insert&quot; m:src=&quot;/WEB-INF/layout/header.html&quot;/&gt;&lt;/td&gt;<br>11:&lt;/tr&gt;<br>12:&lt;tr&gt;<br>13:  &lt;td width=&quot;140&quot; valign=&quot;top&quot;&gt;<br>14:    &lt;span m:inject=&quot;s:insert&quot; m:src=&quot;/WEB-INF/layout/menu.html&quot;/&gt;<br>15:  &lt;/td&gt;<br>16:  &lt;td valign=&quot;top&quot; align=&quot;left&quot;&gt;<br>17:    &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;/&gt;<br>18:  &lt;/td&gt;<br>19:&lt;/tr&gt;<br>20:&lt;tr&gt;<br>21:  &lt;td colspan=&quot;2&quot;&gt;<br>22:    &lt;hr/&gt;<br>23:  &lt;/td&gt;<br>24:&lt;/tr&gt;<br>25:&lt;tr&gt;<br>26: &lt;td colspan=&quot;2&quot;&gt;<br>27:    &lt;span m:inject=&quot;s:insert&quot; m:src=&quot;/WEB-INF/layout/footer.html&quot;/&gt;<br>28:  &lt;/td&gt;<br>29:&lt;/tr&gt;<br>30:&lt;/table&gt;<br>31:&lt;/body&gt;<br>32:&lt;/html&gt;
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+02:&lt;head&gt;
+03:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;
+04:&lt;link m:inject=&quot;s:link&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/css/global.css&quot;/&gt;
+05:&lt;title m:value=&quot;#{layoutTitle}&quot;/&gt;
+06:&lt;/head&gt;
+07:&lt;body&gt;
+08:&lt;table border=&quot;0&quot; cellspacing=&quot;5&quot;&gt;
+09:&lt;tr&gt;
+10:  &lt;td colspan=&quot;2&quot;&gt;&lt;span m:inject=&quot;s:insert&quot; m:src=&quot;/WEB-INF/layout/header.html&quot;/&gt;&lt;/td&gt;
+11:&lt;/tr&gt;
+12:&lt;tr&gt;
+13:  &lt;td width=&quot;140&quot; valign=&quot;top&quot;&gt;
+14:    &lt;span m:inject=&quot;s:insert&quot; m:src=&quot;/WEB-INF/layout/menu.html&quot;/&gt;
+15:  &lt;/td&gt;
+16:  &lt;td valign=&quot;top&quot; align=&quot;left&quot;&gt;
+17:    &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;/&gt;
+18:  &lt;/td&gt;
+19:&lt;/tr&gt;
+20:&lt;tr&gt;
+21:  &lt;td colspan=&quot;2&quot;&gt;
+22:    &lt;hr/&gt;
+23:  &lt;/td&gt;
+24:&lt;/tr&gt;
+25:&lt;tr&gt;
+26: &lt;td colspan=&quot;2&quot;&gt;
+27:    &lt;span m:inject=&quot;s:insert&quot; m:src=&quot;/WEB-INF/layout/footer.html&quot;/&gt;
+28:  &lt;/td&gt;
+29:&lt;/tr&gt;
+30:&lt;/table&gt;
+31:&lt;/body&gt;
+32:&lt;/html&gt;
 </pre>
 <p>4行目のlinkタグを見てください。inject属性でs:linkというタグ名を指定しています。このタグ名の記述の仕方は、JSP
 
@@ -102,27 +354,65 @@ URI(http://www.seasar.org/maya)は固定です。プレフィックスのmは任
     &lt;initMethod name=&quot;addTaglibUri&quot;&gt;
         &lt;arg&gt;&quot;f&quot;&lt;/arg&gt;
         &lt;arg&gt;&quot;http://java.sun.com/jsf/core&quot;&lt;/arg&gt;
-    &lt;initMethod&gt;<br>    &lt;initMethod name=&quot;addTaglibUri&quot;&gt;
-        &lt;arg&gt;&quot;s&quot;&lt;/arg&gt;<br>        &lt;arg&gt;&quot;http://www.seasar.org/jsf&quot;&lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+    &lt;initMethod&gt;
+    &lt;initMethod name=&quot;addTaglibUri&quot;&gt;
+        &lt;arg&gt;&quot;s&quot;&lt;/arg&gt;
+        &lt;arg&gt;&quot;http://www.seasar.org/jsf&quot;&lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 <p>inject属性を指定することで、任意のHTMLのタグを任意のJSF用のJSPのタグに変換できます。既存のJSF用のtaglibがそ
 
 のまま再利用できるのです。</p>
 <p>5行目でtitleを指定しています。layoutTitleの実際の値は、このレイアウトを継承したページで指定します。</p>
-<p>10行目のinsertタグのsrc属性でヘッダー用のページを挿入しています。ヘッダー用のページは次のようになっています
-
-。</p>
-<pre>&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;<br>&lt;body&gt;<br>    &lt;span m:inject=&quot;s:insert&quot;&gt;<br>        &lt;img m:inject=&quot;h:graphicImage&quot; m:url=&quot;/images/seasar.gif&quot;/&gt;<br>    &lt;/span&gt;
-&lt;/body&gt;<br>&lt;/html&gt;
+<p>10行目のinsertタグのsrc属性でヘッダー用のページを挿入しています。ヘッダー用のページは次のようになっています。
+</p>
+<pre>
+&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+&lt;body&gt;
+    &lt;span m:inject=&quot;s:insert&quot;&gt;
+        &lt;img m:inject=&quot;h:graphicImage&quot; m:url=&quot;/images/seasar.gif&quot;/&gt;
+    &lt;/span&gt;
+&lt;/body&gt;
+&lt;/html&gt;
 </pre>
 <p>挿入されるページでは、name属性のないinsertタグの中に挿入したい内容を記述します。insertタグの外側にプレビュ
 
 ー用にタグを書くことも出来ます。その場合、実行時には、insertタグの外側は無視されます。次は、menu.htmlを見てみましょう。</p>
-<pre>&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;<br>...<br>&lt;body&gt;<br>    &lt;span m:inject=&quot;s:insert&quot;&gt;<br>        &lt;form&gt;<br>            &lt;ul&gt;<br>                &lt;li&gt;<br>                    &lt;a m:action=&quot;hello&quot;&gt;Hello<br>                        &lt;span m:inject=&quot;f:param&quot; m:name=&quot;message&quot; m:value=&quot;World&quot;/&gt;<br>                    &lt;/a&gt;<br>                &lt;/li&gt;<br>                &lt;li&gt;<br>                    &lt;a m:action=&quot;add&quot;&gt;Add&lt;/a&gt;<br>                &lt;/li&gt;<br>                ...
-            &lt;/ul&gt;<br>        &lt;/form&gt;<br>    &lt;/span&gt;<br>&lt;/body&gt;<br>&lt;/html&gt;
+<pre>
+&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+...
+&lt;body&gt;
+    &lt;span m:inject=&quot;s:insert&quot;&gt;
+        &lt;form&gt;
+            &lt;ul&gt;
+                &lt;li&gt;
+                    &lt;a m:action=&quot;hello&quot;&gt;Hello
+                        &lt;span m:inject=&quot;f:param&quot; m:name=&quot;message&quot; m:value=&quot;World&quot;/&gt;
+                    &lt;/a&gt;
+                &lt;/li&gt;
+                &lt;li&gt;
+                    &lt;a m:action=&quot;add&quot;&gt;Add&lt;/a&gt;
+                &lt;/li&gt;
+                ...
+            &lt;/ul&gt;
+        &lt;/form&gt;
+    &lt;/span&gt;
+&lt;/body&gt;
+&lt;/html&gt;
 </pre>
-<p>anchorタグのaction属性でリンクをクリックしたときに、遷移するページ名を指定します。action属性は、${変数名.メソッド名}という形式で、JavaBeansのメソッドを呼び出すことも出来ますが、単に文字列を指定した場合は、指定したページに遷移するという意味になります。このhelloというページ名はWEB-INF/faces-config.xmlで設定されています。それでは、該当個所を見ていましょう。</p>
-<pre>&lt;navigation-rule&gt;<br>    &lt;navigation-case&gt;<br>        &lt;from-outcome&gt;hello&lt;/from-outcome&gt;<br>        &lt;to-view-id&gt;/hello/hello.html&lt;/to-view-id&gt;<br>        &lt;redirect/&gt;<br>    &lt;/navigation-case&gt;<br>&lt;/navigation-rule&gt;
+<p>anchorタグのaction属性でリンクをクリックしたときに、遷移するページ名を指定します。
+action属性は、${変数名.メソッド名}という形式でJavaBeansのメソッドを呼び出すことも出来ますが、単に文字列を指定した場合は指定したページに遷移するという意味になります。
+このhelloというページ名はWEB-INF/faces-config.xmlで設定されています。
+それでは、該当個所を見ていましょう。</p>
+<pre>
+&lt;navigation-rule&gt;
+    &lt;navigation-case&gt;
+        &lt;from-outcome&gt;hello&lt;/from-outcome&gt;
+        &lt;to-view-id&gt;/hello/hello.html&lt;/to-view-id&gt;
+        &lt;redirect/&gt;
+    &lt;/navigation-case&gt;
+&lt;/navigation-rule&gt;
 </pre>
 <p>from-outcomeでページ名(遷移先名)を指定します。to-view-idで指定するのが、実際のパスです。redirectタグを書くとリダイレクト、書かないとフォワードされることになります。menu.htmlの説明に戻ります。</p>
 <p>anchorタグの子タグでf:paramタグを指定することにより、遷移先のページへパラメータを渡すことが出来ます。layout.htmlの説明に戻ります。</p>
@@ -163,32 +453,63 @@ m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;...,&lt;/span&gt;を定
 <li>Actionにsetterメソッドを定義してリクエスト、セッション、S2Containerのオブジェクトをプロパティに自動設定する方法。</li>
 </ul>
 <p>それでは、HTMLの中身を見てみましょう。 </p>
-<pre>01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot; m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;<br>02:&lt;head&gt;<br>03:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;<br>04:&lt;title&gt;Add&lt;/title&gt;<br>05:&lt;/head&gt;<br>06:&lt;body&gt;<br>07:  &lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;Add&quot;/&gt;<br>08:  &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;<br>09:    &lt;form&gt;<br>10:      &lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;<br>11:      &lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt; + <br>12:      &lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg2}&quot;/&gt; = <br>13:      &lt;span m:value=&quot;#{addDto.result}&quot;/&gt; <br>14:      &lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;<br>15:    &lt;/form&gt;<br>16:  &lt;/span&gt;<br>17:&lt;/body&gt;<br>18:&lt;/html&gt;
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot; m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
+02:&lt;head&gt;
+03:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;
+04:&lt;title&gt;Add&lt;/title&gt;
+05:&lt;/head&gt;
+06:&lt;body&gt;
+07:  &lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;Add&quot;/&gt;
+08:  &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;
+09:    &lt;form&gt;
+10:      &lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;
+11:      &lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt; + 
+12:      &lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg2}&quot;/&gt; = 
+13:      &lt;span m:value=&quot;#{addDto.result}&quot;/&gt; 
+14:      &lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;
+15:    &lt;/form&gt;
+16:  &lt;/span&gt;
+17:&lt;/body&gt;
+18:&lt;/html&gt;
 </pre>
 <p>headタグの部分は、実行時には無視されます。ブラウザでのプレビュー用です。</p>
-<p>10行目の&lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;で、エラーが起きたときのメッセージを出力する準備をしています。globalOnly属性がtrueの場合、個別の入力項目には関係のない(globalな)エラーのメッセージだけが出力されます。falseにするとglobalなメッセージも個別のメッセージも出力するようになります。</p>
+<p>10行目の
+<pre>
+&lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;false&quot; m:showDetail=&quot;true&quot;/&gt;
+</pre>
+で、エラーが起きたときのメッセージを出力する準備をしています。
+globalOnly属性がtrueの場合、個別の入力項目には関係のない(globalな)エラーのメッセージだけが出力されます。
+falseにするとglobalなメッセージも個別のメッセージも出力するようになります。
+</p>
 <p>
-11行目の&lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt;で、
-入出力用のタグとJavaBeansのプロパティを連動させています。
+11行目の
+<pre>
+&lt;input type=&quot;text&quot; m:value=&quot;#{addDto.arg1}&quot;/&gt;
+</pre>
+で、入出力用のタグとJavaBeansのプロパティを連動させています。
 入力した値は、バリデーションがOKならJavaBeansのプロパティに格納され、
 NGの場合は入力された値がそのままページに表示されることになります。
 このように入出力値の管理をきちんと行ってくれるところがJSFの偉いところです。
 StrutsのようにActionFormでとりあえずStringで受け取るなんて事をする必要がないのです。
 </p>
-<p>★addDtoはどこで定義されているのでしょうか。addDtoは、examples/jsf/dicon/add.diconの中で、次のように定義されています。</p>
-<pre>&lt;component name=&quot;addDto&quot; class=&quot;examples.jsf.dto.AddDto&quot; instance=&quot;request&quot;/&gt;
+<p>
+addDtoは、app.diconで解説したようにexamples.jsf.dto.AddDtoクラスです。
+</p>
+<p>14行目の
+<pre>
+&lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;
 </pre>
-<p>★instance属性がrequestなので、addDtoはrequestスコープで管理されることになります。
-また、add.diconはルートの定義であるapp.diconから次のようにincludeされています。</p>
-<pre>&lt;include path=&quot;examples/jsf/dicon/add.dicon&quot;/&gt;
-</pre>
-<p>★14行目の&lt;input type=&quot;submit&quot; value=&quot;calculate&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;で、ボタンがクリックされたときにJavaBeansのメソッドを呼び出す設定をしています。ボタンやリンクのaction属性で、#{変数名.メソッド名}のように記述することをMethodBindingと呼びます。MethodBindingで呼び出されるメソッドは、引数がなく、戻り値がStringでなければいけません。addActionはadd.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;addAction&quot; class=&quot;examples.jsf.action.impl.AddActionImpl&quot; instance=&quot;request&quot;/&gt;
-</pre>
-<p>★Actionクラスは、入力された内容をプロパティ経由で受け取ることになるので、instance属性をrequestにします。
+で、ボタンがクリックされたときにJavaBeansのメソッドを呼び出す設定をしています。
+ボタンやリンクのaction属性で、#{変数名.メソッド名}のように記述することをMethodBindingと呼びます。
+MethodBindingで呼び出されるメソッドは、引数がなく戻り値がStringでなければいけません。
+</p>
+<p>
+addActionは、app.diconで解説したようにexamples.teeda.action.impl.AddActionImplクラスです。
 それでは、AddActionインターフェース・AddActionImplクラスを見てみましょう。
-インターフェースと実装を必ず分離しなければならないということはないのですが、
-このように分離したほうが、仕様が明確に伝わり易いと思います。</p>
+インターフェースと実装を必ず分離しなければならないということはありませんが、
+このように分離すると仕様が明確に伝わり易いと思います。
+</p>
 <pre>
 package examples.jsf.action;
 
@@ -208,6 +529,7 @@ import examples.jsf.logic.AddLogic;
 public class AddActionImpl implements AddAction {
 
     private AddDto addDto;
+
     private AddLogic addLogic;
 
     public void setAddDto(AddDto addDto) {
@@ -223,16 +545,21 @@ public class AddActionImpl implements AddAction {
         addDto.setResult(result);
         return null;
     }
+
 }
 </pre>
-<p>入力された値を受け取るために、addDtoというプロパティのsetterメソッドを定義しています。
-S2JSFは、MethodBindingで指定したメソッドを呼び出す直前にsetterメソッドの定義されているプロパティがないか調べ、
-もしある場合は、プロパティ名と同様の変数が、リクエスト属性・リクエストパラメータ・セッション属性・S2Containerに存在するか調べ、
-もし存在する場合には、自動的にsetterメソッドを呼び出し、その変数を設定します。</p>
-<p>★addLogicという変数は、どこにも定義されていないのですが、プロパティの型がインターフェースの場合、S2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。AddLogicを実装したクラスは、add.diconで次のように定義されています。</p>
-<pre>&lt;component class=&quot;examples.jsf.logic.impl.AddLogicImpl&quot;/&gt;
-</pre>
-<p>MethodBindingで呼び出したメソッドの戻り値がnullの場合は、自分自身に遷移することになります。</p>
+<p>入力された値を受け取るために、addDtoプロパティのsetterメソッドを定義しています。
+S2JSFはMethodBindingで指定したメソッドを呼び出す直前にsetterメソッドの定義されているプロパティがないか調べ、
+もしある場合はプロパティ名と同様の変数がリクエスト属性・リクエストパラメータ・セッション属性・S2Containerに存在するか調べ、
+もし存在する場合には自動的にsetterメソッドを呼び出してプロパティ名と同様の変数を設定します。</p>
+<p>
+プロパティの型がインターフェースの場合はS2Containerによってそのインターフェースを実装したクラスが自動的に設定されます。
+AddLogicインタフェースを実装したActionはexamples.jsf.logic.impl.AddLogicImplです。
+このクラスはapp.diconの自動登録設定によってS2Containerへ登録されます。
+</p>
+<p>MethodBindingで呼び出したメソッド(calculate)の戻り値がnullの場合は、自分自身に遷移することになります。
+この場合はadd.htmlへ遷移します。
+</p>
 
 <h2><a name="forEachList">forEachList.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
@@ -281,7 +608,17 @@ S2JSFは、MethodBindingで指定したメソッドを呼び出す直前にsette
 <li>Actionにgetterメソッドを定義してプロパティをリクエストやセッションに自動設定する方法。</li>
 </ul>
 <p>それでは、HTMLを見てみましょう。 </p>
-<pre>01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;<br>02:    m:action=&quot;#{forEachResultInitAction.initialize}&quot;<br>03:    m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;<br>04:&lt;head&gt;<br>05:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;<br>06:&lt;title&gt;ForEach&lt;/title&gt;<br>07:&lt;/head&gt;<br>08:&lt;body&gt;<br>09:&lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;ForEach&quot;/&gt;<br>10:&lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
+02:    m:action=&quot;#{forEachResultInitAction.initialize}&quot;
+03:    m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
+04:&lt;head&gt;
+05:&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=Windows-31j&quot; /&gt;
+06:&lt;title&gt;ForEach&lt;/title&gt;
+07:&lt;/head&gt;
+08:&lt;body&gt;
+09:&lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;ForEach&quot;/&gt;
+10:&lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;
 11:     Key:&lt;span m:value=&quot;#{forEachDto.key}&quot;&gt;111&lt;/span&gt;
 12:     Name:&lt;span m:value=&quot;#{forEachDto.name}&quot;&gt;aaa&lt;/span&gt;&lt;br /&gt;
 13:     &lt;a href=&quot;forEachList.html&quot;&gt;previous&lt;/a&gt;
@@ -289,7 +626,8 @@ S2JSFは、MethodBindingで指定したメソッドを呼び出す直前にsette
 15:&lt;/body&gt;
 16:&lt;/html&gt;
 </pre>
-<p>2行目のhtmlタグのaction属性で、ページを初期処理するメソッドを指定しています。それでは、Actionクラスを見てみましょう。</p>
+<p>2行目のhtmlタグのaction属性で、ページを初期処理するメソッドを指定しています。
+それでは、Actionクラスを見てみましょう。</p>
 <pre>
 package examples.jsf.action.impl;
 
@@ -324,7 +662,10 @@ public class ForEachResultInitActionImpl implements ForEachResultInitAction {
     }
 }
 </pre>
-<p>前のページで、anchorタグやbuttonタグのパラメータでindexを渡していたことを思い出してください。setIndex()メソッドを定義しておけば、S2JSFが自動的にパラメータの値を設定してくれます。また、setForEachDtoList()メソッドを定義しておくことで、examples/jsf/dicon/foreach.diconに定義されているforEachDtoListを参照できます。initMethodタグを使えば、任意のメソッドを呼び出せるので、自由自在にオブジェクトを組み立てることが出来ます。</p>
+<p>前のページで、anchorタグやbuttonタグのパラメータでindexを渡していたことを思い出してください。
+setIndex()メソッドを定義しておけば、S2JSFが自動的にパラメータの値を設定してくれます。
+また、setForEachDtoList()メソッドを定義しておくことで、examples/jsf/dicon/foreach.diconに定義されているforEachDtoListを参照できます。
+initMethodタグを使えば、任意のメソッドを呼び出せるので、自由自在にオブジェクトを組み立てることが出来ます。</p>
 <pre>
 &lt;component name=&quot;forEachDtoList&quot; class=&quot;java.util.ArrayList&quot; instance=&quot;session&quot;&gt;
     &lt;initMethod name=&quot;add&quot; &gt;
@@ -345,7 +686,14 @@ public class ForEachResultInitActionImpl implements ForEachResultInitAction {
     &lt;/initMethod&gt;
 &lt;/component&gt;
 </pre>
-<p>initialize()メソッドで指定されたインデックスに基づくオブジェクトをforEachDtoプロパティに設定しています。forEachDtoプロパティには、getterメソッドが定義されているので、initialize()メソッドが実行された後、S2JSFによって、forEachDtoプロパティの値が自動的にリクエストの属性(forEachDto)に設定されます。public static final String プロパティ名_EXPORT = &quot;session&quot;;のように定数を宣言することで、リクエストではなくセッションの属性に設定することも出来ます。 </p>
+<p>initialize()メソッドで指定されたインデックスに基づくオブジェクトをforEachDtoプロパティに設定しています。
+forEachDtoプロパティにはgetterメソッドが定義されているので、
+initialize()メソッドが実行された後にS2JSFによってforEachDtoプロパティの値が自動的にリクエスト属性(forEachDto)に設定されます。
+<pre>
+public static final String プロパティ名_EXPORT = &quot;session&quot;;
+</pre>
+のように定数を宣言することで、リクエストではなくセッションの属性に設定することも出来ます。
+</p>
 
 <h2><a name="forEach2List">forEach2List.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
@@ -353,7 +701,23 @@ public class ForEachResultInitActionImpl implements ForEachResultInitAction {
 <li>入力系のタグを含んだforEachタグによる繰り返し。</li>
 </ul>
 <p>それでは、HTMLの一部を見てみましょう。 </p>
-<pre>01:&lt;form&gt;<br>02:    &lt;table border=&quot;1&quot;&gt;<br>03:        &lt;tr bgcolor=&quot;#7777FF&quot;&gt;<br>04:            &lt;th&gt;delete&lt;/th&gt;<br>05:            &lt;th&gt;input&lt;/th&gt;<br>06:        &lt;/tr&gt;<br>07:        &lt;span m:inject=&quot;s:forEach&quot; m:items=&quot;#{forEach2DtoList}&quot; m:var=&quot;e&quot;&gt;<br>08:        &lt;tr&gt;<br>09:            &lt;td&gt;&lt;input type=&quot;checkbox&quot; m:value=&quot;#{e.delete}&quot;/&gt;&lt;/td&gt;<br>10:            &lt;td&gt;&lt;input type=&quot;text&quot; m:value=&quot;#{e.input}&quot;&lt;/td&gt;<br>11:        &lt;/tr&gt;<br>12:        &lt;/span&gt;<br>13:    &lt;/table&gt;<br>14:    &lt;input type=&quot;submit&quot; value=&quot;update&quot; m:action=&quot;#{forEach2ListAction.update}&quot;/&gt;<br>15:    &lt;input type=&quot;submit&quot; value=&quot;add row&quot; m:action=&quot;#{forEach2ListAction.addRow}&quot;/&gt;<br>16:&lt;/form&gt;
+<pre>
+01:&lt;form&gt;
+02:    &lt;table border=&quot;1&quot;&gt;
+03:        &lt;tr bgcolor=&quot;#7777FF&quot;&gt;
+04:            &lt;th&gt;delete&lt;/th&gt;
+05:            &lt;th&gt;input&lt;/th&gt;
+06:        &lt;/tr&gt;
+07:        &lt;span m:inject=&quot;s:forEach&quot; m:items=&quot;#{forEach2DtoList}&quot; m:var=&quot;e&quot;&gt;
+08:        &lt;tr&gt;
+09:            &lt;td&gt;&lt;input type=&quot;checkbox&quot; m:value=&quot;#{e.delete}&quot;/&gt;&lt;/td&gt;
+10:            &lt;td&gt;&lt;input type=&quot;text&quot; m:value=&quot;#{e.input}&quot;&lt;/td&gt;
+11:        &lt;/tr&gt;
+12:        &lt;/span&gt;
+13:    &lt;/table&gt;
+14:    &lt;input type=&quot;submit&quot; value=&quot;update&quot; m:action=&quot;#{forEach2ListAction.update}&quot;/&gt;
+15:    &lt;input type=&quot;submit&quot; value=&quot;add row&quot; m:action=&quot;#{forEach2ListAction.addRow}&quot;/&gt;
+16:&lt;/form&gt;
 </pre>
 <p>このページでは、add rowボタンをクリックすると新規の行が挿入され、deleteのチェックボックスをチェックしてupdateボタンをクリックすることで行を削除することができます。また、入力値を書き換えてupdateボタンをクリックすることでinputの内容を更新することも出来ます。</p>
 <p>入力系のタグを含んでいるといっても、forEachタグの使い方に特に違いはありません。Actionクラスは次のようになります。</p>
@@ -467,11 +831,27 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
     &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;
 &lt;/form&gt;
 </pre>
-<p>ほとんどの入出力用のタグは、converter属性を持っていて、Javaのオブジェクトの値を文字列に変換したり、入力された文字列を適切なオブジェクトの型に変換するためのコンバータを指定することができます。この例におけるコンバータは、examples/jsf/dicon/allconverter.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;inputDateTimeConverter&quot; class=&quot;org.seasar.jsf.convert.S2DateTimeConverter&quot;&gt;<br>    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyyMMdd&quot;&lt;/property&gt;<br>&lt;/component&gt;<br>&lt;component name=&quot;outputDateTimeConverter&quot; class=&quot;org.seasar.jsf.convert.S2DateTimeConverter&quot;&gt;<br>    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyy/MM/dd&quot;&lt;/property&gt;<br>&lt;/component&gt;
+<p>ほとんどの入出力用のタグはconverter属性を持っていて、
+Javaのオブジェクトの値を文字列に変換したり、入力された文字列を適切なオブジェクトの型に変換するためのコンバータを指定することができます。
+この例におけるコンバータは、examples/jsf/dicon/allconverter.diconで次のように定義されています。
+</p>
+<pre>
+&lt;component name=&quot;inputDateTimeConverter&quot; class=&quot;org.seasar.jsf.convert.S2DateTimeConverter&quot;&gt;
+    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyyMMdd&quot;&lt;/property&gt;
+&lt;/component&gt;
+&lt;component name=&quot;outputDateTimeConverter&quot; class=&quot;org.seasar.jsf.convert.S2DateTimeConverter&quot;&gt;
+    &lt;property name=&quot;pattern&quot;&gt;&quot;yyyy/MM/dd&quot;&lt;/property&gt;
+&lt;/component&gt;
 </pre>
-<p>このようにコンバータをHTMLで個別に定義するのではなく、diconファイルで一元管理することで、コンバータの定義が分散することを防ぐことが出来ます。</p>
-<p>また、label属性に定義した値を、コンバート失敗時のメッセージに使用することが出来ます。それにはConverterがlabel属性に対応している必要があります。標準のConverterについては、それぞれ対応するConverterをS2JSFで用意しています。独自のConverterを作る場合は、S2JSFを参考にしてください。</p>
+<p>このようにコンバータをHTMLで個別に定義するのではなくdiconファイルで一元管理することで、
+コンバータの定義が分散することを防ぐことが出来ます。
+</p>
+<p>
+また、label属性に定義した値をコンバート失敗時のメッセージに使用することが出来ます。
+それにはConverterがlabel属性に対応している必要があります。
+標準のConverterについては、それぞれ対応するConverterをS2JSFで用意しています。
+独自のConverterを作る場合はS2JSFを参考にしてください。
+</p>
 
 <h2><a name="validator">validator.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
@@ -517,12 +897,23 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 /&gt;
 </pre>
 
-<p>S2GreaterEqualValidatorは、targetIdで関連チェックする相手を指定するのですが、diconファイルの定義は1つでhtmlでtargetIdを追加するようになっています。同じような処理で複数指定する場合があるので、diconファイルのinstance属性はprototypeにします。</p>
-<p>このようにバリデータをHTMLで個別に定義するのではなく、diconファイルで一元管理することで、バリデータの定義が分散することを防ぐことが出来ます。</p>
-
-
-<p>バリデーションエラーになったときに表示させるメッセージは、messageタグで組み込みます。for属性で対象となるタグのidを指定します。messagesタグでglobalOnly属性をfalseにすることで、messagesタグに表示させることも出来ますが、どのタグでバリデーションエラーがおきたのかをわかりやすくするために、個別のタグのバリデーションエラーは、messageタグを使って表示させたほうが良いと思います。</p>
-<p>また、label属性に定義した値をバリデーションのメッセージに使用することが出来ます。label属性を使用する場合は、UIComponentとValidatorがそれぞれ対応している必要があります。標準のUIComponentとValidatorについては、それぞれ対応するUIComponentとValidatorをS2JSFで用意しています。独自のUIComponent、Validatorを作る場合は、S2JSFを参考にして機能を追加してください。</p>
+<p>S2GreaterEqualValidatorは、targetIdで関連チェックする相手を指定するのですが、
+diconファイルの定義は1つでhtmlでtargetIdを追加するようになっています。
+同じような処理で複数指定する場合があるので、diconファイルのinstance属性はprototypeにします。
+</p>
+<p>このようにバリデータをHTMLで個別に定義するのではなくdiconファイルで一元管理することで、バリデータの定義が分散することを防ぐことが出来ます。
+</p>
+<p>バリデーションエラーになったときに表示させるメッセージはmessageタグで組み込みます。
+for属性で対象となるタグのidを指定します。
+messagesタグでglobalOnly属性をfalseにすることで、messagesタグに表示させることも出来ますが、
+どのタグがバリデーションエラーになったのかわかりやすくするために、
+個別のタグのバリデーションエラーはmessageタグを使って表示させたほうが良いでしょう。
+</p>
+<p>また、label属性に定義した値をバリデーションのメッセージに使用することが出来ます。
+lbel属性を使用する場合は、UIComponentとValidatorがそれぞれlabel属性に対応している必要があります。
+JSF標準のUIComponentとValidatorについては、それぞれ対応するUIComponentとValidatorをS2JSFで用意しています。
+独自のUIComponent・Validatorを作る場合は、S2JSFを参考にして機能を追加してください。
+</p>
 
 <h2><a name="checkbox">checkbox.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
@@ -530,7 +921,12 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <li>checkboxの使い方。</li>
 </ul>
 <p>それでは、HTMLの一部を見てみましょう。 </p>
-<pre>&lt;form&gt;<br>    &lt;input type=&quot;checkbox&quot; m:value=&quot;#{checkboxDto.aaa}&quot;/&gt;hoge&lt;br /&gt;<br>    &lt;span m:value=&quot;#{checkboxDto.aaa}&quot;/&gt;&lt;br /&gt;<br>    &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;<br>&lt;/form&gt;
+<pre>
+&lt;form&gt;
+    &lt;input type=&quot;checkbox&quot; m:value=&quot;#{checkboxDto.aaa}&quot;/&gt;hoge&lt;br /&gt;
+    &lt;span m:value=&quot;#{checkboxDto.aaa}&quot;/&gt;&lt;br /&gt;
+    &lt;input type=&quot;submit&quot; value=&quot;submit&quot;/&gt;
+&lt;/form&gt;
 </pre>
 <p>特に難しいところはありませんね。うれしいのは、チェックボックスをオフにしたときも、それがサーバサイドにきちんと伝わることです。</p>
 
@@ -542,7 +938,14 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <li>selectタグでJavaBeansで要素を定義する方法。</li>
 </ul>
 <p>それでは、HTMLの一部を見てみましょう。 </p>
-<pre>01:&lt;form&gt;<br>02:    &lt;select m:value=&quot;#{selectOneMenuDto.aaa}&quot;&gt;<br>03:        &lt;option value=&quot;1&quot;&gt;One&lt;/option&gt;<br>04:        &lt;option value=&quot;2&quot;&gt;Two&lt;/option&gt;<br>05:        &lt;option value=&quot;3&quot;&gt;Three&lt;/option&gt;<br>06:    &lt;/select&gt;&lt;br /&gt;<br>07:    &lt;span m:value=&quot;#{selectOneMenuDto.aaa}&quot;/&gt;&lt;br /&gt;
+<pre>
+01:&lt;form&gt;
+02:    &lt;select m:value=&quot;#{selectOneMenuDto.aaa}&quot;&gt;
+03:        &lt;option value=&quot;1&quot;&gt;One&lt;/option&gt;
+04:        &lt;option value=&quot;2&quot;&gt;Two&lt;/option&gt;
+05:        &lt;option value=&quot;3&quot;&gt;Three&lt;/option&gt;
+06:    &lt;/select&gt;&lt;br /&gt;
+07:    &lt;span m:value=&quot;#{selectOneMenuDto.aaa}&quot;/&gt;&lt;br /&gt;
 08:
 09:    &lt;select m:value=&quot;#{selectOneMenuDto.bbb}&quot;
 10:        m:items=&quot;#{selectOneMenuBbbItems}&quot;&gt;
@@ -567,11 +970,86 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 </pre>
 <p>2行目からはじまるselectタグは、子タグのoptionタグで直接要素を指定しています。</p>
 <p>9行目からはじまるselectタグは、items属性で要素を指定しています。items属性を指定した場合、子タグのoptionタグは実行時には無視されます。あくまでもブラウザでのプレビュー用です。selectOneMenuBbbItemsは、examples/jsf/dicon/selectonemenu.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;selectOneMenuBbbItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Please select&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;1&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;One&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;2&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Two&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;3&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Three&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;4&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Four&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>
+&lt;component name=&quot;selectOneMenuBbbItems&quot; class=&quot;java.util.ArrayList&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Please select&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;1&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;One&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;2&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Two&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;3&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Three&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;4&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Four&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 <p>この例では、SelectItemを使って要素を定義しています。</p>
 <p>17行目からはじまるselectタグは、items属性で要素を指定しています。この例の場合、個々の要素はJavaBeansなので、さらにitemValue属性とitemLabel属性で、どのプロパティを値として使うのか、どのプロパティをラベルとして使うのかを指定します。nullLabel属性を使いnullを設定する場合のラベルを指定することもできます。selectOneMenuCccItemsは、examples/jsf/dicon/selectonemenu.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;selectOneMenuCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>
+&lt;component name=&quot;selectOneMenuCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 
 <h2><a name="selectManyCheckbox">selectManyCheckbox.html</a></h2>
@@ -582,7 +1060,17 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <li>selectManyCheckboxでJavaBeansで要素を定義する方法。</li>
 </ul>
 <p>それでは、HTMLの一部を見てみましょう。 </p>
-<pre>01:&lt;form&gt;<br>02:    &lt;span m:inject=&quot;s:selectManyCheckbox&quot;<br>03:        m:value=&quot;#{selectManyCheckboxDto.aaa}&quot;&gt;<br>04:        &lt;input type=&quot;checkbox&quot; m:inject=&quot;s:selectItem&quot;<br>05:            m:itemLabel=&quot;One&quot; value=&quot;1&quot;/&gt;One<br>06:        &lt;input type=&quot;checkbox&quot; m:inject=&quot;s:selectItem&quot;<br>07:            m:itemLabel=&quot;Two&quot; value=&quot;2&quot; checked=&quot;checked&quot;/&gt;Two<br>08:        &lt;input type=&quot;checkbox&quot; m:inject=&quot;s:selectItem&quot;<br>09:            m:itemLabel=&quot;Three&quot; value=&quot;3&quot;/&gt;Three<br>10:    &lt;/span&gt;&lt;br /&gt;
+<pre>
+01:&lt;form&gt;
+02:    &lt;span m:inject=&quot;s:selectManyCheckbox&quot;
+03:        m:value=&quot;#{selectManyCheckboxDto.aaa}&quot;&gt;
+04:        &lt;input type=&quot;checkbox&quot; m:inject=&quot;s:selectItem&quot;
+05:            m:itemLabel=&quot;One&quot; value=&quot;1&quot;/&gt;One
+06:        &lt;input type=&quot;checkbox&quot; m:inject=&quot;s:selectItem&quot;
+07:            m:itemLabel=&quot;Two&quot; value=&quot;2&quot; checked=&quot;checked&quot;/&gt;Two
+08:        &lt;input type=&quot;checkbox&quot; m:inject=&quot;s:selectItem&quot;
+09:            m:itemLabel=&quot;Three&quot; value=&quot;3&quot;/&gt;Three
+10:    &lt;/span&gt;&lt;br /&gt;
 11:
 12:    &lt;span m:inject=&quot;s:selectManyCheckbox&quot;
 13:        m:value=&quot;#{selectManyCheckboxDto.bbb}&quot;
@@ -605,11 +1093,78 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 </pre>
 <p>2行目からはじまるselectManyCheckboxタグは、子タグのcheckboxタグで直接要素を指定しています。チェックされた値は、配列としてvalue属性で指定したプロパティに設定されます。</p>
 <p>12行目からはじまるselectManyCheckboxタグは、items属性で要素を指定しています。items属性を指定した場合、子タグのcheckboxタグは実行時には無視されます。あくまでもブラウザでのプレビュー用です。selectManyCheckboxBbbItemsは、examples/jsf/dicon/selectmanycheckbox.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;selectManyCheckboxBbbItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;1&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;One&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;2&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Two&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;3&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Three&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;4&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Four&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>&lt;component name=&quot;selectManyCheckboxBbbItems&quot; class=&quot;java.util.ArrayList&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;1&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;One&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;2&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Two&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;3&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Three&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;4&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Four&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 <p>この例では、SelectItemを使って要素を定義しています。</p>
 <p>20行目からはじまるselectManyCheckboxタグは、items属性で要素を指定しています。この例の場合、個々の要素はJavaBeansなので、さらにitemValue属性とitemLabel属性で、どのプロパティを値として使うのか、どのプロパティをラベルとして使うのかを指定します。selectManyCheckboxCccItemsは、examples/jsf/dicon/selectmanycheckbox.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;selectManyCheckboxCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>
+&lt;component name=&quot;selectManyCheckboxCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 
 <h2><a name="selectManyListbox">selectManyListbox.html</a></h2>
@@ -620,7 +1175,13 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 <li>selectManyListboxでJavaBeansで要素を定義する方法。</li>
 </ul>
 <p>それでは、HTMLの一部を見てみましょう。 </p>
-<pre>01:&lt;form&gt;<br>02:    &lt;select m:value=&quot;#{selectManyListboxDto.aaa}&quot; multiple=&quot;multiple&quot;&gt;<br>03:        &lt;option value=&quot;1&quot;&gt;One&lt;/option&gt;<br>04:        &lt;option value=&quot;2&quot;&gt;Two&lt;/option&gt;<br>05:        &lt;option value=&quot;3&quot;&gt;Three&lt;/option&gt;<br>06:    &lt;/select&gt;&lt;br /&gt;
+<pre>
+01:&lt;form&gt;
+02:    &lt;select m:value=&quot;#{selectManyListboxDto.aaa}&quot; multiple=&quot;multiple&quot;&gt;
+03:        &lt;option value=&quot;1&quot;&gt;One&lt;/option&gt;
+04:        &lt;option value=&quot;2&quot;&gt;Two&lt;/option&gt;
+05:        &lt;option value=&quot;3&quot;&gt;Three&lt;/option&gt;
+06:    &lt;/select&gt;&lt;br /&gt;
 07:
 08:    &lt;select m:value=&quot;#{selectManyListboxDto.bbb}&quot;
 09:        m:items=&quot;#{selectManyListboxBbbItems}&quot;
@@ -642,11 +1203,79 @@ public class ForEach2ListActionImpl implements ForEach2ListAction {
 </pre>
 <p>2行目からはじまるselectタグは、子タグのoptionタグで直接要素を指定しています。選択された値は、配列としてvalue属性で指定したプロパティに設定されます。</p>
 <p>8行目からはじまるselectタグは、items属性で要素を指定しています。items属性を指定した場合、子タグのoptionタグは実行時には無視されます。あくまでもブラウザでのプレビュー用です。selectManyListboxBbbItemsは、examples/jsf/dicon/selectmanylistbox.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;selectManyListboxBbbItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;1&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;One&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;2&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Two&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;3&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Three&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;<br>                &lt;property name=&quot;value&quot;&gt;4&lt;/property&gt;<br>                &lt;property name=&quot;label&quot;&gt;&quot;Four&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>
+&lt;component name=&quot;selectManyListboxBbbItems&quot; class=&quot;java.util.ArrayList&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;1&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;One&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;2&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Two&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;3&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Three&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;javax.faces.model.SelectItem&quot;&gt;
+                &lt;property name=&quot;value&quot;&gt;4&lt;/property&gt;
+                &lt;property name=&quot;label&quot;&gt;&quot;Four&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 <p>この例では、SelectItemを使って要素を定義しています。</p>
 <p>15行目からはじまるselectタグは、items属性で要素を指定しています。この例の場合、個々の要素はJavaBeansなので、さらにitemValue属性とitemLabel属性で、どのプロパティを値として使うのか、どのプロパティをラベルとして使うのかを指定します。selectManyListboxCccItemsは、examples/jsf/dicon/selectmanylistbox.diconで次のように定義されています。</p>
-<pre>&lt;component name=&quot;selectManyListboxCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>    &lt;initMethod name=&quot;add&quot; &gt;<br>        &lt;arg&gt;<br>            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;<br>                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;<br>                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;<br>            &lt;/component&gt;<br>        &lt;/arg&gt;<br>    &lt;/initMethod&gt;<br>&lt;/component&gt;
+<pre>
+&lt;component name=&quot;selectManyListboxCccItems&quot; class=&quot;java.util.ArrayList&quot;&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;10&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;ACOUNTING&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;20&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;RESEARCH&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;30&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;SALES&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name=&quot;add&quot; &gt;
+        &lt;arg&gt;
+            &lt;component class=&quot;examples.jsf.entity.Department&quot;&gt;
+                &lt;property name=&quot;deptno&quot;&gt;40&lt;/property&gt;
+                &lt;property name=&quot;dname&quot;&gt;&quot;OPERATIONS&quot;&lt;/property&gt;
+            &lt;/component&gt;
+        &lt;/arg&gt;
+    &lt;/initMethod&gt;
+&lt;/component&gt;
 </pre>
 <h2><A name=selectOneRadio>selectOneRadio.html</a></h2>
 <p>このサンプルでは、次のことを学びます。</p>
@@ -792,7 +1421,7 @@ textareaタグの要素は、あくまでもブラウザでのプレビュー用
 04:                    onclick=&quot;location.href='pageTran2.html'&quot; m:immediate=&quot;true&quot;/&gt;
 05:&lt;/form&gt;
 </pre>
-<p>一つ目のボタンタグのaction属性のActionクラスを見てみましょう。</p>
+<p>1つ目のボタンタグのaction属性のActionクラスを見てみましょう。</p>
 <pre>
 public class Page1ActionImpl implements Page1Action {
     public String throwException() {
@@ -826,7 +1455,7 @@ ErrorPage1RuntimeExceptionのエラーが発生した場合の画面の遷移先
 &lt;body&gt;
 &lt;span m:inject=&quot;f:param&quot; m:name=&quot;layoutTitle&quot; m:value=&quot;The page transition with exception1&quot;/&gt;
 &lt;span m:inject=&quot;s:insert&quot; m:name=&quot;body&quot;&gt;
-<b>&lt;span m:value=&quot;#{requestScope['seasar.jsf.error.message']}&quot;&gt;error message&lt;/span&gt;</b>
+<strong>&lt;span m:value=&quot;#{requestScope['seasar.jsf.error.message']}&quot;&gt;error message&lt;/span&gt;</strong>
 &lt;/span&gt;
 &lt;/body&gt;
 </pre>
@@ -835,14 +1464,14 @@ ErrorPage1RuntimeExceptionのエラーが発生した場合の画面の遷移先
 &lt;input type=&quot;button&quot; value=&quot;The exception due to initialize action&quot; m:action=&quot;pageTran2&quot; 
                 onclick=&quot;location.href='pageTran2.html'&quot; m:immediate=&quot;true&quot;/&gt;
 </pre>
-<p>アクション属性のpageTran2はWEB-INF/faces-config.xmlでは/errorpage/pageTran2.htmlと定義されています。</p>
+<p>action属性のpageTran2はWEB-INF/faces-config.xmlでは/errorpage/pageTran2.htmlと定義されています。</p>
 <p>pageTran2.htmlを見てみましょう</p>
 <pre>
 01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
-02:    <b>m:action=&quot;#{page2InitAction.initialize}&quot;</b>
+02:    <strong>m:action=&quot;#{page2InitAction.initialize}&quot;</strong>
 03:    m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
 </pre>
-<p>2行目のアクション属性のActionクラスを見てみましょう。</p>
+<p>2行目のaction属性のActionクラスを見てみましょう。</p>
 <pre>
 public class Page2InitActionImpl implements Page2InitAction {
     
@@ -852,10 +1481,16 @@ public class Page2InitActionImpl implements Page2InitAction {
 
 }
 </pre>
-<p>この処理も先ほどと同じようにErrorPage2RuntimeExceptionを発生させています。ErrorPage2RuntimeExceptionはjsfErrorPage.diconを見るとerrorPage2.htmlに遷移するように設定してありますので、errorPage2.htmlに遷移して設定したメッセージが表示されます。</p>
+<p>この処理も先ほどと同じようにErrorPage2RuntimeExceptionを発生させています。
+ErrorPage2RuntimeExceptionはjsfErrorPage.diconを見るとerrorPage2.htmlに遷移するように設定してありますので、
+errorPage2.htmlに遷移して設定したメッセージが表示されます。</p>
+
 <h2><a name="employeeManagement">Employee Management</a></h2>
-<p>このサンプルの従業員管理アプリケーションでは新規、修正、削除、照会を行います。このサンプルを動かす前にs2jsf-example/WEB-INF/binにあるrunHsqldb.batでHSQLDBを起動させておいてください。</p>
-<p>s2jsfでは、Actionクラス、ロジッククラス、dicon、Dto、Daoという構成でなりたっています。今回のサンプルは以下のようになっています。</p>
+<p>このサンプルの従業員管理アプリケーションでは新規・修正・削除・照会を行います。
+このサンプルを動かす前にs2jsf-example/WEB-INF/binにあるrunHsqldb.batでHSQLDBを起動させておいてください。
+</p>
+<p>s2jsfでは、Actionクラス・Logicクラス・dicon・Dto・Daoという構成でなりたっています。
+今回のサンプルは以下のようになっています。</p>
 <pre>
 ・Actionクラス
 examples/jsf/action
@@ -909,11 +1544,10 @@ examples/jsf/Dao
 <ul>
 <li><a href="#EmployeeSearchInitialize">ページの初期処理の説明</a></li>
     <ul>
-    <li><a href="#EmployeeSearchInitializeDicon">ページの初期処理のdiconファイル</a></li>
     <li><a href="#EmployeeSearchInitializeClass">ページの初期処理のクラス</a></li>
     <ul>
         <li><a href="#EmployeeSearchInitializeProperty">プロパティ</a></li>
-        <li><a href="#EmployeeSearchInitializeMethod">ページの初期処理するメソッド</a></li>
+        <li><a href="#EmployeeSearchInitializeMethod">ページを初期処理するメソッド</a></li>
     </ul>
     </ul>
 <li><a href="#EmployeeSearchInitializeView">画面の説明</a></li>
@@ -922,7 +1556,6 @@ examples/jsf/Dao
     </ul>
 <li><a href="#EmployeeSearchAction">Actionクラスの説明</a></li>
     <ul>
-    <li><a href="#EmployeeSearchActionDicon">Actionクラスのdiconファイル</a></li>
     <li><a href="#EmployeeSearchActionClass">Actionクラス</a></li>
     <ul>
         <li><a href="#EmployeeSearchActionProperty">プロパティ</a></li>
@@ -930,15 +1563,20 @@ examples/jsf/Dao
     </ul>
     </ul>
 </ul>
+
 <h4><a name="EmployeeSearchInitialize">ページの初期処理の説明</a></h4>
-<pre>01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
-02:    <b>m:action=&quot;#{employeeSearchInitAction.initialize}&quot;</b>
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
+02:    <strong>m:action=&quot;#{employeeSearchInitAction.initialize}&quot;</strong>
 03:    m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
 </pre>
-<p>2行目のaction属性でページを初期するメソッドを指定しています。この初期処理では以下のselectタグのitems属性のdepartmentDtoListにDAOから取得したjavaBeanのListがセットされます。
+<p>
+2行目のaction属性で、ページを初期化するコンポーネント(employeeSearchInitAction)とそのメソッド(initialize)を指定しています。
+この初期処理では、下記selectタグのitems属性のdepartmentDtoListにDAOから取得したJavaBeanのListをセットします。
 </p>
-<pre>71:&lt;select id=&quot;deptno&quot; m:value=&quot;#{employeeSearchDto.deptno}&quot;
-72:    m:items=&quot;<b>#{departmentDtoList}&quot;</b>
+<pre>
+71:&lt;select id=&quot;deptno&quot; m:value=&quot;#{employeeSearchDto.deptno}&quot;
+72:    m:items=&quot;<strong>#{departmentDtoList}&quot;</strong>
 73:    m:itemValue=&quot;deptno&quot;
 74:    m:itemLabel=&quot;dname&quot;
 75:    m:nullLabel=&quot;Please select&quot;&gt;
@@ -949,155 +1587,126 @@ examples/jsf/Dao
 80:    &lt;option value=&quot;40&quot;&gt;OPERATIONS&lt;/option&gt;
 81:&lt;/select&gt;
 </pre>
-<h4><a name="EmployeeSearchInitializeDicon">ページの初期処理のdiconファイル</a></h4>
-<p>★それでは、そのaction属性のemployeeSearchInitActionの定義ファイルを見ていきましょう。employeeSearchInitActionはexamples/jsf/dicon/employee.diconで定義されています。</p>
-<pre>&lt;component name=&quot;employeeSearchInitAction&quot; 
-            class=&quot;examples.jsf.action.impl.EmployeeSearchInitActionImpl&quot; instance=&quot;request&quot;&gt;
-    <b>&lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;</b>
-&lt;/component&gt;
-</pre>
-<p>このaspectタグで指定しているactionInterceptorChainはexamples/jsf/dicon/allaop.diconで以下のように定義されています。</p>
-<pre>
-&lt;component name=&quot;actionInterceptorChain&quot; class=&quot;org.seasar.framework.aop.interceptors.InterceptorChain&quot;&gt;
-    <b>&lt;initMethod name=&quot;add&quot;&gt;&lt;arg&gt;aop.traceInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
-    &lt;initMethod name=&quot;add&quot;&gt;&lt;arg&gt;actionThrowsInterceptor&lt;/arg&gt;&lt;/initMethod&gt;</b>
-&lt;/component&gt;
-</pre>
-<p>org.seasar.framework.aop.interceptors.InterceptorChainは、複数のInterceptorをグルーピング化し、再利用しやすくします。この場合、aop.traceInterceptorとactionThrowsInterceptorを一つにまとめています。最初のaop.traceInterceptorはaop.diconで以下のように定義さています。</p>
-<pre>
-&lt;component name=&quot;traceInterceptor&quot;
-            <b>class=&quot;org.seasar.framework.aop.interceptors.TraceInterceptor&quot;/&gt;</b>
-</pre>
-<p>org.seasar.framework.aop.interceptors.TraceInterceptorはS2AOPで用意されているInterceptorでトレース処理を行うものです。actionInterceptorChainの2つ目のaspectタグで指定しているactionThrowsInterceptorはexamples/jsf/dicon/allaop.diconで以下のように定義されています。</p>
 
-<pre>
-&lt;component name=&quot;actionThrowsInterceptor&quot; 
-            <b>class=&quot;examples.jsf.interceptor.ActionThrowsInterceptor&quot;/&gt;</b>
-</pre>
-<p>examples.jsf.interceptor.ActionThrowsInterceptorは独自のThrowsInterceptorで以下のようになっています。</p>
-<pre>public class ActionThrowsInterceptor extends ThrowsInterceptor {
-    public String handleThrowable(AppRuntimeException ex, MethodInvocation invocation)throws Throwable{
-        FacesContext context = FacesContext.getCurrentInstance();
-        context.addMessage(null, MessageUtil.getErrorMessage(ex.getMessageId(), ex.getArgs()));
-        return null;
-    }
-}
-</pre>
-<p>AppRuntimeExceptionをハンドリングしてID/引数をとりだして、以下のメッセージタグにメッセージを自動的にセットします。このようにエラー処理をInterceptorにまかせれば、実装はPOJOで作成することができます。</p>
+<h5><a name="EmployeeSearchInitializeClass">ページの初期処理のクラス</a></h5>
+<p>
+employeeSearchInitActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeSearchInitActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+actionInterceptorChainの中のactionThrowsInterceptorによって、発生した例外のメッセージは下記のメッセージタグにセットされます。
 <pre>
 &lt;span m:inject=&quot;h:messages&quot; m:globalOnly=&quot;true&quot; m:class=&quot;error&quot;/&gt;
 </pre>
-<h4><a name="EmployeeSearchInitializeClass">ページの初期処理のクラス</a></h4>
-<p>それでは、examples.jsf.action.impl.EmployeeSearchInitActionImplを見ていきましょう。</p>
-<h4><a name="EmployeeSearchInitializeProperty">プロパティ</a></h4>
+examples.jsf.action.impl.EmployeeSearchInitActionImplを見ていきましょう。
+</p>
+
+<h5><a name="EmployeeSearchInitializeProperty">プロパティ</a></h5>
 <p>初期処理のActionクラスは次のプロパティを持っています。</p>
 <pre>
 public class EmployeeSearchInitActionImpl implements EmployeeSearchInitAction {
 
-    <b>private EmployeeLogic employeeLogic;
-    private List departmentDtoList;</b>
+    <strong>private EmployeeLogic employeeLogic;
+    private List departmentDtoList;</strong>
                   :
 }
 </pre>
-<p>★EmployeeLogicはインターフェースなのでS2Containerによって、そのインターフェースを実装したクラスが自動的に設定されます。EmployeeLogicを実装したクラスは、examples/jsf/dicon/employee.diconで以下のように定義されています。<p>
-<pre>&lt;component class=&quot;examples.jsf.logic.impl.EmployeeLogicImpl&quot;&gt;
-    <b>&lt;aspect&gt;logicInterceptorChain&lt;/aspect&gt;</b>
-&lt;/component&gt;
-</pre>
-<p>★このaspectタグで定義されているlogicInterceptorChainの定義先はexamples/jsf/dicon/allaop.diconです。これは次のように定義されています。</p>
-<pre>
-&lt;component name=&quot;logicInterceptorChain&quot; class=&quot;org.seasar.framework.aop.interceptors.InterceptorChain&quot;&gt;
-    <b>&lt;initMethod name=&quot;add&quot;&gt;&lt;arg&gt;aop.traceThrowsInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
-    &lt;initMethod name=&quot;add&quot;&gt;&lt;arg&gt;aop.traceInterceptor&lt;/arg&gt;&lt;/initMethod&gt;
-    &lt;initMethod name=&quot;add&quot;&gt;&lt;arg&gt;j2ee.requiredTx&lt;/arg&gt;&lt;/initMethod&gt;</b>
-&lt;/component&gt;
-</pre>
-<p>最初の２つはS2AOPで用意されているInterceptorでトレース処理を行うものです。詳しくは<a href="aop.html#AOPInterceptor">S2AOPで用意されているInterceptor</a>を参照してください。３つめのj2ee.requiredTxはトランザクション制御用コンポーネントでトランザクションが開始されていなければ、自動的にトランザクションを開始します。 
-既にトランザクションが開始されていれば、そのトランザクションを引き継ぎます。詳しくは<a href="tx.html">トランザクションの自動制御</a> を参照してください。
+<p>
+EmployeeLogicはインターフェースなので、S2ContainerによってEmployeeLogicを実装したクラスが自動的に設定されます。
+EmployeeLogicを実装したクラスはexamples.jsf.logic.impl.EmployeeLogicImplです。
+app.diconでの設定によりS2Containerへ登録されています。
 </p>
-<p>examples.jsf.logic.impl.EmployeeLogicImplは以下の2つのsetterメソッドに対してDAOを自動バインディングしてセットします。DAOの詳しい説明は<a href="s2dao.html">s2Dao</a>を参照してください。
+<p>
+<a href="#AutoRegisterForLogic">Logic自動登録</a>で解説したようにLogicにはlogicInterceptorChainが指定されており、
+logicInterceptorChainの中のj2ee.requiredTxによって、トランザクションが自動制御されます。
+</p>
+<p>
+EmployeeLogicImplは以下の2つのsetterメソッドに対してDAOを自動バインディングしてセットします。
+DAOの詳しい説明は<a href="http://s2dao.seasar.org/ja/index.html">S2Dao</a>を参照してください。
 <pre>
 public class EmployeeLogicImpl implements EmployeeLogic {
     private EmployeeDtoDao employeeDtoDao;
     private DepartmentDtoDao departmentDtoDao;
 
-    <b>public void setEmployeeDtoDao(EmployeeDtoDao employeeDtoDao) {
+    <strong>public void setEmployeeDtoDao(EmployeeDtoDao employeeDtoDao) {
         this.employeeDtoDao = employeeDtoDao;
-    }</b>
+    }</strong>
     
-    <b>public void setDepartmentDtoDao(DepartmentDtoDao departmentDtoDao) {
+    <strong>public void setDepartmentDtoDao(DepartmentDtoDao departmentDtoDao) {
         this.departmentDtoDao = departmentDtoDao;
-    }</b>
+    }</strong>
                         :
                         :
 </pre>
 <p>EmployeeDtoDaoではBEANアノテーションでexamples.jsf.dto.EmployeeDtoを定義しています。</p>
 <pre>
 public interface EmployeeDtoDao {
-    <b>public Class BEAN = EmployeeDto.class;</b>
+    <strong>public Class BEAN = EmployeeDto.class;</strong>
                         :
 }
 </pre>
-<p>BEANアノテーションで指定しているexamples.jsf.dto.EmployeeDtoはexamples.jsf.entity.Employeeのサブクラスで、このexamples.jsf.entity.EmployeeでTABLEアノテーションでEMPテーブルとの関連付けを行っています。</p>
-<pre>public class Employee implements Serializable {
-    <b>public static final String TABLE = "EMP";</b>
+<p>
+BEANアノテーションで指定しているexamples.jsf.dto.EmployeeDtoはexamples.jsf.entity.Employeeのサブクラスで、
+このexamples.jsf.entity.EmployeeでTABLEアノテーションでEMPテーブルとの関連付けを行っています。</p>
+<pre>
+public class Employee implements Serializable {
+    <strong>public static final String TABLE = "EMP";</strong>
                         :
 }
 </pre>
-<p>examples.jsf.dto.EmployeeDtoはプロパティdnameとそのsetter/getterを追加したもので、これはDepartment.dname用のものです。もう一方のDepartmentDtoDaoも同じようにBEANアノテーションでexamples.jsf.dto.DepartmentDtoを定義しています。</p>
+<p>
+examples.jsf.dto.EmployeeDtoはプロパティdnameとそのsetter/getterを追加したもので、
+これはDepartment.dname用のものです。
+もう一方のDepartmentDtoDaoも同じようにBEANアノテーションでexamples.jsf.dto.DepartmentDtoを定義しています。
+</p>
 <pre>
 public interface DepartmentDtoDao {
-    <b>public Class BEAN = DepartmentDto.class;</b>
+    <strong>public Class BEAN = DepartmentDto.class;</strong>
                         :
 }
 </pre>
-<p>BEANアノテーションで指定しているexamples.jsf.dto.DepartmentDtoはexamples.jsf.entity.Departmentのサブクラスで、このexamples.jsf.entity.DepartmentでTABLEアノテーションでDEPTテーブルとの関連付けを行っています。</p>
-<pre>public class Department implements Serializable {
-    <b>public static final String TABLE = "DEPT";</b>
-                        :
-}
-</pre>
-<p>★TODO この2つのDAOをexamples/jsf/dicon/alldao.diconに以下のように定義して生成します。</p>
+<p>
+BEANアノテーションで指定しているexamples.jsf.dto.DepartmentDtoはexamples.jsf.entity.Departmentのサブクラスで、
+このexamples.jsf.entity.DepartmentでTABLEアノテーションでDEPTテーブルとの関連付けを行っています。
+</p>
 <pre>
-&lt;components&gt;
-    &lt;include path=&quot;dao.dicon&quot;/&gt;
-    &lt;include path=&quot;aop.dicon&quot;/&gt;
+public class Department implements Serializable {
+    <strong>public static final String TABLE = "DEPT";</strong>
+                        :
+}
+</pre>
+<p>
+これら2つのDAOはapp.diconでの設定によりS2Containerへ登録されています。
+</p>
+<p>
+<a href="#AutoRegisterForDao">DAO自動登録</a>で解説したようにDAOにはdaoInterceptorChainが指定されています。
+daoInterceptorChainの中のdao.interceptorによって、EmployeeDtoDao・DepartmentDtoDaoはインタフェースに対して
+実装クラスが自動的に生成されます。
+</p>
 
-    &lt;component class=&quot;examples.jsf.dao.EmployeeDtoDao&quot;&gt;
-        &lt;aspect&gt;aop.traceInterceptor&lt;/aspect&gt;
-        &lt;aspect&gt;dao.interceptor&lt;/aspect&gt;
-    &lt;/component&gt;
-    
-    &lt;component class=&quot;examples.jsf.dao.DepartmentDtoDao&quot;&gt;
-        &lt;aspect&gt;aop.traceInterceptor&lt;/aspect&gt;
-        &lt;aspect&gt;dao.interceptor&lt;/aspect&gt;
-    &lt;/component&gt;
-&lt;/components&gt;
-</pre>
-<p>aspectタグのうちdao.interceptorは、dao.diconで定義されています。これはS2Daoを機能させるためのInterceptor(org.seasar.dao.interceptors.S2DaoInterceptor)であり、org.seasar.dao.impl.DaoMetaDataFactoryImplはS2DaoInterceptorのコンストラクタの引数となるのでとともに定義されています。</p>
-<pre>
-&lt;components namespace=&quot;dao&quot;&gt;
-    &lt;include path=&quot;j2ee.dicon&quot;/&gt;
-    &lt;component 
-        class=&quot;org.seasar.dao.impl.DaoMetaDataFactoryImpl&quot;/&gt;
-    &lt;component name=&quot;interceptor&quot;
-        class=&quot;org.seasar.dao.interceptors.S2DaoInterceptor&quot;/&gt;
-&lt;/components&gt;
-</pre>
-<p>これらの定義によりEmployeeDtoDao、DepartmentDtoDaoはインタフェースに対して、実装クラスを自動的に生成して、EmployeeLogicImplのプロパティに設定しています。</p>
-<h5><a name="EmployeeSearchInitializeMethod">ページの初期処理するメソッド</a></h5>
-<p>EmployeeSearchInitActionImpl#initialize()のメソッドでEmployeeLogicImpl#getAllDepartments()の戻り値(DepartmentDtoのList)をプロパティdepartmentDtoListにセットしてgetterメソッドとしてgetDepartmentDtoListがあるので、このプロパティが自動的にrequestスコープの属性として保存されます。そのためセレクトタグのitem属性のdepartmentDtoListにセットされます。</p>
+<h5><a name="EmployeeSearchInitializeMethod">ページを初期処理するメソッド</a></h5>
+<p>
+EmployeeSearchInitActionImpl#initialize()のメソッドでは、
+EmployeeLogicImpl#getAllDepartments()の戻り値(DepartmentDtoのList)をプロパティdepartmentDtoListにセットします。
+getterメソッドとしてgetDepartmentDtoListがあるので、このプロパティが自動的にrequestスコープの属性として保存されます。
+そのためセレクトタグのitem属性のdepartmentDtoListにセットされます。
+</p>
 <pre>
 public class EmployeeSearchInitActionImpl implements EmployeeSearchInitAction {
                   :
-    <b>public String initialize() {
+    <strong>public String initialize() {
         departmentDtoList = employeeLogic.getAllDepartments();
         return null;
-    }</b>
+    }</strong>
 }
 </pre>
+
 <h4><a name="EmployeeSearchInitializeView">画面の説明</a></h4>
-<p>この画面(employeeSearch.html)の各入出力用のタグを見ていきましょう。各入出力用のタグはJavaBeans(employeeSearchDto)のプロパティを連動させています。</p>
+<p>この画面(employeeSearch.html)の各入出力用のタグを見ていきましょう。
+各入出力用のタグはJavaBeans(employeeSearchDto)のプロパティを連動させています。
+</p>
 <h5><a name="EmployeeSearchInitializeTagu">タグの説明</a></h5>
 <p>EmployeeNoのタグは次のようになっています。</p>
 <pre>&lt;tr&gt;
@@ -1130,15 +1739,25 @@ public class EmployeeSearchInitActionImpl implements EmployeeSearchInitAction {
     &lt;/td&gt;
 &lt;/tr&gt;
 </pre>
-<p>これはJSFの標準機能でJavaBeanのプロパティの型をString型と相互に変換する標準のコンバータを適用してくれます。標準コンバータの呼び出しでもvalidationが行われるためコンバータが解釈できなければエラーメッセージがセットされます。Salaryも同様に標準のコンバータが適応されます。</br>
-ただし、このs2jsf-exampleではJavaBeanのプロパティの型がjava.util.Dateの場合、org.seasar.jsf.convert.S2DateTimeConverterを使用するようにしてあります。この定義はfaces-config.xmlで次のように定義してあります。</p>
+<p>
+これはJSFの標準機能でJavaBeanのプロパティの型をString型と相互に変換する標準のコンバータを適用してくれます。
+標準コンバータの呼び出しでもvalidationが行われるためコンバータが解釈できなければエラーメッセージがセットされます。
+Salaryも同様に標準のコンバータが適応されます。
+</br>
+ただし、このs2jsf-exampleではJavaBeanのプロパティの型がjava.util.Dateの場合はorg.seasar.jsf.convert.S2DateTimeConverterを使用するようにしてあります。
+この定義はfaces-config.xmlで次のように定義してあります。
+</p>
 <pre>
 &lt;converter&gt;
     &lt;converter-for-class&gt;java.util.Date&lt;/converter-for-class&gt;
     &lt;converter-class&gt;org.seasar.jsf.convert.S2DateTimeConverter&lt;/converter-class&gt;
 &lt;/converter&gt;
 </pre>
-<p>次にcreate、searchボタンを見ていきましょう。action属性でメソッドを呼び出しています(MethodBinding)。onclick属性のlocation.href='employeeEdit.html'の部分はプレビュー用です。</p>
+<p>
+次にcreate・searchボタンを見ていきましょう。
+action属性でメソッドを呼び出しています(MethodBinding)。
+onclick属性のlocation.href='employeeEdit.html'の部分はプレビュー用です。
+</p>
 <pre>
 &lt;input type=&quot;button&quot; value=&quot;create&quot;
     m:action=&quot;#{employeeSearchAction.goEditForCreate}&quot;
@@ -1147,35 +1766,47 @@ public class EmployeeSearchInitActionImpl implements EmployeeSearchInitAction {
     m:action=&quot;#{employeeSearchAction.checkSearchCount}&quot;
     onclick=&quot;location.href='employeeList.html'&quot;/&gt;
 </pre>
+
 <h4><a name="EmployeeSearchAction">Actionクラスの説明</a></h4>
-<p>createボタンのアクション属性のemployeeSearchActionを見ていきましょう。</p>
-<h5><a name="EmployeeSearchActionDicon">Actionクラスのdiconファイル</a></h5>
-<p>★employeeSearchActionはexamples/jsf/dicon/employee.diconで以下のように定義されています。aspectタグのactionInterceptorChainは先ほどの<a href="#EmployeeSearchInitializeDicon">ページの初期処理のdiconファイル</a>で説明した通りです。</p>
-<pre>
-&lt;component name=&quot;employeeSearchAction&quot; 
-        class=&quot;examples.jsf.action.impl.EmployeeSearchActionImpl&quot; instance=&quot;request&quot;&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
-<h4><a name="EmployeeSearchActionClass">Actionクラス</a></h4>
-<a>examples.jsf.action.impl.EmployeeSearchActionImplクラスを見ていきましょう。</a>
+<p>createボタンのaction属性に記述されているemployeeSearchActionを見ていきましょう。</p>
+
+<h5><a name="EmployeeSearchActionClass">Actionクラス</a></h5>
+<p>
+employeeSearchActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeSearchActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeSearchActionImplクラスを見ていきましょう。
+</p>
+
 <h5><a name="EmployeeSearchActionProperty">プロパティ</a></h5>
 <p>examples.jsf.action.impl.EmployeeSearchActionImplは以下のプロパティを持っています。</p>
 <pre>
 public class EmployeeSearchActionImpl implements EmployeeSearchAction {
     private EmployeeLogic employeeLogic;
     private EmployeeSearchDto employeeSearchDto;
-    <b>private ProcessModeDto processModeDto;</b>
+    <strong>private ProcessModeDto processModeDto;</strong>
                     :
 }
 </pre>
-<p>★examples.jsf.dto.ProcessModeDtoは状態を表すDTOです。これはexamples/jsf/dicon/employee.diconでincludeしているexamples/jsf/dicon/processmode.diconに定義してあります。</p>
+<p>
+examples.jsf.dto.ProcessModeDtoは状態を表すDTOです。
+<a href="#AutoRegisterForDto">DTO自動登録設定</a>によって、S2Containerに登録されています。
+</p>
+<p>
+ProcessModeDtoはプロパティとしてprocessModeがあるだけのクラスです。
+そのインスタンスがsessionで管理されています。
+app.diconではrequestスコープへ登録するよう設定されていますが、
+ProcessModeDtoのCOMPONENTアノテーションでapp.diconの設定を上書きしています。
 <pre>
-&lt;components&gt;
-    &lt;component name=&quot;processModeDto&quot; class=&quot;examples.jsf.dto.ProcessModeDto&quot; instance=&quot;session&quot;/&gt;
-&lt;/components&gt;
+public class ProcessModeDto {
+    <strong>public static final String COMPONENT = "instance = session";</strong>
+                    :
 </pre>
-<p>ProcessModeDtoはプロパティとしてprocessModeがあるだけのクラスです。そのインスタンスがsessionで管理されています。</p>
+</p>
+
 <h5><a name="EmployeeSearchActionMethod">Actionクラスのメソッド(MethodBinding)</a></h5>
 <p>それでは、createボタンが押されたときに実行されるexamples.jsf.action.impl.EmployeeSearchActionImplのgoEditForCreate()を見てみましょう。</p>
 <pre>
@@ -1193,7 +1824,8 @@ public interface Constants {
     public int REFER_MODE = 4;
 }
 </pre>
-<p>ProcessModeDtoに「CREATE_MODE」という状態が記録され、最後に"employeeEdit"が返されます。実際faces-config.xmlを見てみると、employeeEditは/employee/employeeEdit.htmlと定義されています。
+<p>ProcessModeDtoに「CREATE_MODE」という状態が記録され、最後に"employeeEdit"が返されます。
+faces-config.xmlを見ると、employeeEditは/employee/employeeEdit.htmlと定義されています。
 <pre>
 &lt;navigation-rule&gt;
     &lt;navigation-case&gt;
@@ -1202,16 +1834,16 @@ public interface Constants {
     &lt;/navigation-case&gt;
 &lt;/navigation-rule&gt;
 </pre>
+
 <h3><a name="employeeEdit">employeeEdit.html</a></h3>
 <p>/employee/employeeEdit.htmlを見てみましょう。見ていく順番は以下のようになります。</p>
 <ul>
 <li><a href="#EmployeeEditInitialize">ページの初期処理の説明</a></li>
     <ul>
-    <li><a href="#EmployeeEditInitializeDicon">ページの初期処理のdiconファイル</a></li>
     <li><a href="#EmployeeEditInitializeClass">ページの初期処理のクラス</a></li>
     <ul>
         <li><a href="#EmployeeEditInitializeProperty">プロパティ</a></li>
-        <li><a href="#EmployeeEditInitializeMethod">ページの初期処理するメソッド</a></li>
+        <li><a href="#EmployeeEditInitializeMethod">ページを初期処理するメソッド</a></li>
     </ul>
     </ul>
 <li><a href="#EmployeeEditView">画面の説明</a></li>
@@ -1220,7 +1852,6 @@ public interface Constants {
     </ul>
 <li><a href="#EmployeeEditAction">Actionクラスの説明</a></li>
     <ul>
-    <li><a href="#EmployeeEditActionDicon">Actionクラスのdiconファイル</a></li>
     <li><a href="#EmployeeEditActionClass">Actionクラス</a></li>
     <ul>
         <li><a href="#EmployeeEditActionProperty">プロパティ</a></li>
@@ -1231,20 +1862,22 @@ public interface Constants {
 <h4><a name="EmployeeEditInitialize">ページの初期処理の説明</a></h4>
 <pre>
 &lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
-    <b>m:action=&quot;#{employeeEditInitAction.initialize}&quot;</b>
+    <strong>m:action=&quot;#{employeeEditInitAction.initialize}&quot;</strong>
     m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
 </pre>
 <p>2行目のaction属性でページの初期処理をするメソッドを指定しています。</a>
-<h5><a name ="EmployeeEditInitializeDicon">ページの初期処理のdiconファイル</a></h5>
-<p>★この初期化メソッドのemployeeEditInitActionはexamples/jsf/dicon/employee.diconで以下のように宣言されています。aspectタグのactionInterceptorChainは<a href="#EmployeeSearchInitializeDicon">こちら</a>で説明した通りです。</p>
-<pre>
-&lt;component name=&quot;employeeEditInitAction&quot; 
-            class=&quot;examples.jsf.action.impl.EmployeeEditInitActionImpl&quot; instance=&quot;request&quot;&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
+
 <h5><a name="EmployeeEditInitializeClass">ページの初期処理のクラス</a></h5>
-<a>examples.jsf.action.impl.EmployeeSearchInitActionImplを見ていきましょう。</a>
+<p>
+employeeEditInitActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeEditInitActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeEditInitActionImplを見ていきましょう。
+</p>
+
 <h5><a name="EmployeeEditInitializeProperty">プロパティ</a></h5>
 <p>examples.jsf.action.impl.EmployeeEditInitActionImplクラスは以下のプロパティを持っています。</p>
 <pre>
@@ -1257,9 +1890,19 @@ public class EmployeeEditInitActionImpl implements EmployeeEditInitAction {
                 :
 }
 </pre>
-<p>empnoは単なるプロパティで、ProcessModeDtoは前に書いたように、プログラムの状態管理です。最後のdepartmentDtoListはsetterメソッドがないので、EmployeeEditInitActionImpl生成時点では何も行われません。action属性で指定されたinitialize()の中でセットされます。そのinitialize()は次のようになっています。</p>
-<h5><a name="EmployeeEditInitializeMethod">ページの初期処理するメソッド</a></h5>
-<p>getAllDepartments()でテーブルDEPTの全レコードを取得しています。次のif文では、現在の状態がUPDATE_MODE(編集状態)ならempnoをキーにテーブルEMPを検索した結果をemployeeDtoへ設定します。これをHTMLファイルでValueBindingすることにより、値が自動的に画面表示されます。今回はCREATE_MODEなので検索は行われずemployeeDtoは空になります。</p>
+<p>
+empnoは単なるプロパティで、ProcessModeDtoは前に書いたようにプログラムの状態管理です。
+最後のdepartmentDtoListはsetterメソッドが無いので、EmployeeEditInitActionImpl生成時点では何も行われません。
+action属性で指定されたinitialize()の中でセットされます。そのinitialize()は次のようになっています。
+</p>
+
+<h5><a name="EmployeeEditInitializeMethod">ページを初期処理するメソッド</a></h5>
+<p>
+getAllDepartments()でテーブルDEPTの全レコードを取得しています。
+次のif文では、現在の状態がUPDATE_MODE(編集状態)ならempnoをキーにテーブルEMPを検索した結果をemployeeDtoへ設定します。
+これをHTMLファイルでValueBindingすることにより、値が自動的に画面表示されます。
+今回はCREATE_MODEなので検索は行われずemployeeDtoは空になります。
+</p>
 <pre>
 public String initialize() {
     departmentDtoList = employeeLogic.getAllDepartments();
@@ -1270,12 +1913,16 @@ public String initialize() {
 }
 </pre>
 <h4><a name="EmployeeEditView">画面の説明</a></h4>
-<p>この画面(employeeEdit.html)の各入出力用のタグを見ていきましょう。各入出力用のタグはJavaBeans(employeeDto)のプロパティを連動させています。</p>
+<p>この画面(employeeEdit.html)の各入出力用のタグを見ていきましょう。
+各入出力用のタグはJavaBeans(employeeDto)のプロパティを連動させています。
+</p>
+
 <h5><a name="EmployeeEditTagu">タグの説明</a></h5>
-<p>画面に表示させる処理モードの表示方法は次のようになります。</p>
+<p>画面に表示させる処理モードの表示方法は次のようになります。
+</p>
 <pre>
 &lt;span m:value=&quot;Create&quot;
-    <b>m:rendered=&quot;#{processModeDto.processMode == 1}&quot;</b>
+    <strong>m:rendered=&quot;#{processModeDto.processMode == 1}&quot;</strong>
     m:class=&quot;display&quot; class=&quot;notdisplay&quot;&gt;
     Create
 &lt/span&gt;
@@ -1286,15 +1933,23 @@ public String initialize() {
 </pre>
 <p>renderedは条件分岐で以下のように設定します。</p>
 <pre>
-&lt;span m:value=&quot;値１&quot; m:rendered=&quot;条件式１&quot;&gt;値２&lt;/span&gt;
-&lt;span m:rendered=&quot;条件式２&quot;&gt;値３&lt;/span&gt;
+&lt;span m:value=&quot;値1&quot; m:rendered=&quot;条件式1&quot;&gt;値2&lt;/span&gt;
+&lt;span m:rendered=&quot;条件式2&quot;&gt;値3&lt;/span&gt;
 </pre>
 <p>上の場合、このspanタグの評価結果は</p>
 <ul>
-<li>条件式１がtrueなら値１。falseなら何も返さない。値２はプレビュー用。</li>
-<li>条件式２がtrueなら値３。falseなら何も返さない。値３プレビューでも使われる。</li>
+<li>条件式1がtrueなら値1。falseなら何も返さない。値2はプレビュー用。</li>
+<li>条件式2がtrueなら値3。falseなら何も返さない。値3プレビューでも使われる。</li>
 </ul>
-<p>値３にはまた別なspanタグを書いたりしてネストすることもできます。最初のspanタグはprocessModeDto.processMode == 1ならvalue属性の"Create"になります。spanタグで囲まれている方の"Create"はプレビュー用です。spanタグのm:classはrendered = true(つまりS2JSF環境で実行して条件が成立したとき)使われるCSSのclassで、ただのclass(notdisplay)はプレビュー用のものとなります。プレビュー用のclass(notdisplay)はCreateを表示させないようにしています。プレビューで見たときCreateとEditの両方が表示されてしまうためです。またm:class="display"を記述しておかないとS2JSF環境で実行した場合、プレビュー用のclass(notdisplay)が適応されて表示されなくなってしまいます。</p>
+<p>値3にはまた別なspanタグを書いたりしてネストすることもできます。
+最初のspanタグはprocessModeDto.processMode == 1ならvalue属性の"Create"になります。
+spanタグで囲まれている方の"Create"はプレビュー用です。
+spanタグのm:classはrendered = true(つまりS2JSF環境で実行して条件が成立したとき)使われるCSSのclassで、
+ただのclass(notdisplay)はプレビュー用のものとなります。
+プレビュー用のclass(notdisplay)はCreateを表示させないようにしています。
+プレビューで見たときCreateとEditの両方が表示されてしまうためです。
+またm:class="display"を記述しておかないと、S2JSF環境で実行した場合にプレビュー用のclass(notdisplay)が適応されて表示されなくなってしまいます。
+</p>
 <p>次に出てくるhiddenタグを見てみましょう。</p>
 <pre>
 &lt;input type=&quot;hidden&quot; m:value=&quot;#{employeeDto.versionNo}&quot;
@@ -1333,22 +1988,25 @@ public String initialize() {
     onclick=&quot;location.href='employeeConfirm.html'&quot;/&gt;
 &lt;input type=&quot;button&quot; value=&quot;previous&quot;
     m:action=&quot;#{employeeEditAction.goPrevious}&quot;
-    <b>m:immediate=&quot;true&quot;</b>
+    <strong>m:immediate=&quot;true&quot;</strong>
     onclick=&quot;location.href='employeeList.html'&quot;/&gt;
 </pre>
 <p>immediate="true"を指定することでバリデーションをかけないでページ遷移が可能となります。</p>
+
 <h4><a name="EmployeeEditAction">Actionクラスの説明</a></h4>
-<p>action属性のemployeeEditActionを見てみましょう。</p>
-<h5><a name="EmployeeEditActionDiocn">Actionクラスのdiconファイル</a></h5>
-<p>★employeeEditActionはemployee.diconで定義されています。その定義を見るとexamples.jsf.action.impl.EmployeeEditActionImplのインスタンスで、requestスコープというのがわかります。aspectタグのactionInterceptorChainは<a href="#EmployeeSearchInitializeDicon">こちら</a>で説明した通りです。</p>
-<pre>
-&lt;component name=&quot;employeeEditAction&quot; 
-            class=&quot;examples.jsf.action.impl.EmployeeEditActionImpl&quot; instance=&quot;request&quot;&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
+<p>action属性のemployeeEditActionを見ていきましょう。</p>
+
 <h4><a name="EmployeeEditActionClass">Actionクラス</a></h4>
-<p>examples.jsf.action.impl.EmployeeSearchActionImplクラスを見ていきましょう。 </p>
+<p>
+employeeEditActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeEditActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeEditActionImplクラスを見ていきましょう。
+</p>
+
 <h5><a name="EmployeeEditActionProperty">プロパティ</a></h5>
 <p>examples.jsf.action.impl.EmployeeEditActionImplは以下のプロパティを持っています。</p>
 <pre>
@@ -1359,7 +2017,14 @@ public class EmployeeEditActionImpl implements EmployeeEditAction {
                 ：
 }
 </pre>
-<p>EmployeeLogicはテーブルEMPを操作するインタフェース。その実装クラスEmployeeLogicImplがセットされます。ProcessModeDtoはプログラムの状態を管理するDTOです。EmployeeDtoはemployeeEdit.htmlでは各フィールドをemployeeDtoのプロパティにValueBindingしていて、そのbindされたemployeeDtoがrequestスコープに保存されています。</p>
+<p>
+EmployeeLogicはテーブルEMPを操作するインタフェース。
+その実装クラスEmployeeLogicImplがセットされます。
+ProcessModeDtoはプログラムの状態を管理するDTOです。
+EmployeeDtoはemployeeEdit.htmlでは各フィールドをemployeeDtoのプロパティにValueBindingしていて、
+そのbindされたemployeeDtoがrequestスコープに保存されています。
+</p>
+
 <h4><a name="EmployeeEditActionMethod">Actionクラスのメソッド(MethodBinding)</a></h4>
 <p>それではボタンのMethodbindingのemployeeEditAction.goPreviousから見てみましょう。</p>
 <pre>
@@ -1374,11 +2039,14 @@ public String goPrevious() {
     }
 }
 </pre>
-<p>action属性で指定されているgoPrevious()は、現在の状態に合わせて戻り先を決めているだけです。またimmediate="true"を指定していたので入力内容を反映せずにページ遷移が可能となります。残りのMethodbindingのemployeeEditAction.goConfirm()は次のようになっています。</p>
+<p>action属性で指定されているgoPrevious()は、現在の状態に合わせて戻り先を決めているだけです。
+またimmediate="true"を指定していたので入力内容を反映せずにページ遷移が可能となります。
+残りのMethodbindingのemployeeEditAction.goConfirm()は次のようになっています。
+</p>
 <pre>
 public String goConfirm() {
     if (processModeDto.getProcessMode() == Constants.CREATE_MODE
-            && <b>employeeLogic.existEmployee(employeeDto.getEmpno())</b>) {
+            && <strong>employeeLogic.existEmployee(employeeDto.getEmpno())</strong>) {
         throw new EmployeeAlreadyExistRuntimeException(employeeDto
                 .getEmpno().intValue());
     }
@@ -1391,19 +2059,27 @@ public boolean existEmployee(Integer empno) {
     return employeeDtoDao.getEmployeeDto(empno) != null;
 }
 </pre>
-<p>引数empnoをキーにテーブルEMPを検索し、該当レコードをjava.util.Listに格納して、この戻り値がnullでない場合trueを返します。呼び出し元のif文ではこれを使ってCREATE_MODEで同じempnoを持つレコードがテーブルEMPにあれば例外EmployeeAlreadyExistRuntimeExceptionをスローしています。</p>
-<p>EmployeeAlreadyExistRuntimeExceptionはjava.lang.RuntimeExceptionのサブクラス(正確には間にexamples.jsf.exceptionAppRuntimeExceptionが入る)なのでthrowsを書く必要がありません。結果「従業員(xxxx)は既に存在します」というメッセージとして表示されます。これはこのemployeeEditActionにactionInterceptorChainが適用されるからです。</br>
-empnoが重複していなければ"employeeConfirm"が返され、/employee/employeeConfirm.htmlに遷移します。</p>
+<p>引数empnoをキーにテーブルEMPを検索し、該当レコードをjava.util.Listに格納して、この戻り値がnullでない場合trueを返します。
+呼び出し元のif文では、これを使ってCREATE_MODEで同じempnoを持つレコードがテーブルEMPにあれば例外EmployeeAlreadyExistRuntimeExceptionをスローしています。
+</p>
+<p>EmployeeAlreadyExistRuntimeExceptionはjava.lang.RuntimeExceptionのサブクラス(正確には間にexamples.jsf.exceptionAppRuntimeExceptionが入る)なのでthrowsを書く必要がありません。
+結果「従業員(xxxx)は既に存在します」というメッセージとして表示されます。
+これはこのemployeeEditActionにactionInterceptorChainが適用されるからです。
+empnoが重複していなければ"employeeConfirm"が返され、/employee/employeeConfirm.htmlに遷移します。
+</p>
+
 <h3><a name="employeeConfirm">employeeConfirm.html</a></h3>
-<p>employeeSearch.htmlでcreateボタンが押された後に表示されるemployee/employeeConfirm.htmlを見ていきましょう。見ていく順番は以下のようになります。</p>
+<p>
+employeeSearch.htmlでcreateボタンが押された後に表示されるemployee/employeeConfirm.htmlを見ていきましょう。
+見ていく順番は以下のようになります。
+</p>
 <ul>
 <li><a href="#EmployeeConfirmInitialize">ページの初期処理の説明</a></li>
     <ul>
-    <li><a href="#EmployeeConfirmInitializeDicon">ページの初期処理のdiconファイル</a></li>
     <li><a href="#EmployeeConfirmInitializeClass">ページの初期処理のクラス</a></li>
     <ul>
         <li><a href="#EmployeeConfirmInitializeProperty">プロパティ</a></li>
-        <li><a href="#EmployeeConfirmInitializeMethod">ページの初期処理するメソッド</a></li>
+        <li><a href="#EmployeeConfirmInitializeMethod">ページを初期処理するメソッド</a></li>
     </ul>
     </ul>
 <li><a href="#EmployeeConfirmView">画面の説明</a></li>
@@ -1412,7 +2088,6 @@ empnoが重複していなければ"employeeConfirm"が返され、/employee/emp
     </ul>
 <li><a href="#EmployeeConfirmAction">Actionクラスの説明</a></li>
     <ul>
-    <li><a href="#EmployeeConfirmActionDicon">Actionクラスのdiconファイル</a></li>
     <li><a href="#EmployeeConfirmActionClass">Actionクラス</a></li>
     <ul>
         <li><a href="#EmployeeConfirmActionProperty">プロパティ</a></li>
@@ -1424,20 +2099,22 @@ empnoが重複していなければ"employeeConfirm"が返され、/employee/emp
 
 <pre>
 01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
-02:    <b>m:action=&quot;#{employeeConfirmInitAction.initialize}&quot;</b>
+02:    <strong>m:action=&quot;#{employeeConfirmInitAction.initialize}&quot;</strong>
 03:    m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
 </pre>
 <p>2行目のaction属性でページを初期化するメソッドを指定しています。</p>
-<h5><a name="EmployeeConfirmInitializeDicon">ページの初期処理のdiconファイル</a></h5>
-<p>★この初期化メソッドのemployeeConfirmInitActionはexamples/jsf/dicon/employee.diconで以下のように宣言されています。</p>
-<pre>
-&lt;component name="employeeConfirmInitAction" 
-            class="examples.jsf.action.impl.EmployeeConfirmInitActionImpl" instance="request"&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
+
 <h5><a name="EmployeeConfirmInitializeClass">ページの初期処理のクラス</a></h5>
-<p>examples.jsf.action.impl.EmployeeSearchInitActionImplを見ていきましょう。</p>
+<p>
+employeeConfirmInitActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeConfirmInitActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeConfirmInitActionImplを見ていきましょう。
+</p>
+
 <h5><a name="EmployeeConfirmInitializeProperty">プロパティ</a></h5>
 <p>examples.jsf.action.impl.EmployeeConfirmInitActionImplのプロパティは以下のようになっています。</p>
 <pre>
@@ -1447,7 +2124,11 @@ public class EmployeeConfirmInitActionImpl implements EmployeeConfirmInitAction 
             :
 }
 </pre>
-<p>EmployeeLogicはテーブルEMPを操作するインタフェース定義で、その実装クラス(EmployeeLogicImp)がセットされます。EmployeeDtoは、このemployeeConfirm.htmlの場合、前画面のemployeeEdit.htmlの各フィールドでValueBindingされた結果が入っています。</p>
+<p>
+EmployeeLogicはテーブルEMPを操作するインタフェース定義で、その実装クラス(EmployeeLogicImp)がセットされます。
+EmployeeDtoは、このemployeeConfirm.htmlの場合、前画面のemployeeEdit.htmlの各フィールドでValueBindingされた結果が入っています。
+</p>
+
 <h5><a name="EmployeeConfirmInitializeMethod">ページを初期処理するメソッド</a></h5>
 <p>初期化処理(initialize())は次のようになっています。</p>
 <pre>
@@ -1515,18 +2196,21 @@ public String initialize() {
     onclick=&quot;location.href='employeeEdit.html'&quot;/&gt;
 </pre>
 <p>storeはrenderedの条件式がprocessModeDto.processMode != 4 なので、CREATE_MODE, UPDATE_MODE, DELETE_MODEのとき表示されます。</p>
+
 <h4><a name="EmployeeConfirmAction">Actionクラスの説明</a></h4>
-<p>アクション属性のemployeeConfirmActionを見ていきましょう。</p>
-<h5><a name="EmployeeConfirmActionDicon">Actionクラスのdiconファイル</a></h5>
-<p>★employeeConfirmActionはemployee.diconで以下のように定義されています。</p>
-<pre>
-&lt;component name=&quot;employeeConfirmAction&quot; 
-            class=&quot;examples.jsf.action.impl.EmployeeConfirmActionImpl&quot; instance=&quot;request&quot;&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
+<p>action属性のemployeeConfirmActionを見ていきましょう。</p>
+
 <h4><a name="EmployeeConfirmActionClass">Actionクラス</a></h4>
-<p>examples.jsf.action.impl.EmployeeConfirmActionImplクラスを見ていきましょう。</p>
+<p>
+employeeConfirmActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeConfirmActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeConfirmActionImplクラスを見ていきましょう。
+</p>
+
 <h5><a name="EmployeeConfirmActionProperty">プロパティ</a></h5>
 <p>EmployeeConfirmActionImplは以下のプロパティを持っています。</p>
 <pre>
@@ -1537,7 +2221,8 @@ public class EmployeeConfirmActionImpl implements EmployeeConfirmAction {
                 :
 }
 </pre>
-<p>EmployeeLogicはインタフェースで実際はEmployeeLogicImplというテーブルEMPに対する操作を実装したクラスのインスタンスがセットされます。ProcessModeDtoはプログラムの状態を管理用。EmployeeDtoには前画面から渡されたデータが入っています。</p>
+<p>EmployeeLogicはインタフェースで実際はEmployeeLogicImplというテーブルEMPに対する操作を実装したクラスのインスタンスがセットされます。ProcessModeDtoはプログラムの状態を管理用。
+EmployeeDtoには前画面から渡されたデータが入っています。</p>
 <h4><a name="EmployeeConfirmActionMethod">Actionクラスのメソッド(MethodBinding)</a></h4>
 <p>storeボタンが押されたとき呼び出されるEmployeeLogic#store()を見てみましょう。</p>
 <pre>
@@ -1589,7 +2274,10 @@ public String goPrevious() {
     }
 }
 </pre>
-<p>いままでがemployeeSearch.htmlのcreateボタンを押されて始まる一連の処理となります。次は同じくemployeeSearch.htmlにあるsearchボタンが押されたときの処理を見てみましょう。</p>
+<p>いままでがemployeeSearch.htmlのcreateボタンを押されて始まる一連の処理となります。
+</p>
+<p>
+次は同じくemployeeSearch.htmlにあるsearchボタンが押されたときの処理を見てみましょう。</p>
 <pre>
 &lt;input type=&quot;button&quot; value=&quot;search&quot;
     m:action=&quot;#{employeeSearchAction.checkSearchCount}&quot;
@@ -1613,15 +2301,15 @@ public int getSearchCount(EmployeeSearchDto dto) {
 <p>getSearchCount()でDTOを検索条件として該当レコード数を取得しています。この結果でcheckSearchCount()は該当レコードがなければ例外BadCriteriaRuntimeExceptionをスローします。 該当あれば"employeeList"を返します。この結果、/employee/employeeList.htmlへ遷移します。 
 </p>
 <h3><a name="employeeList">employeeList.html</a></h3>
-<p>/employee/employeeList.htmlはemployeeSearch.htmlへ入力された条件に該当するレコードをリスト表示する画面です。見ていく順番は以下のようになります。</p>
+<p>/employee/employeeList.htmlはemployeeSearch.htmlへ入力された条件に該当するレコードをリスト表示する画面です。
+見ていく順番は以下のようになります。</p>
 <ul>
 <li><a href="#EmployeeListInitialize">ページの初期処理の説明</a></li>
     <ul>
-    <li><a href="#EmployeeListInitializeDicon">ページの初期処理のdiconファイル</a></li>
     <li><a href="#EmployeeListInitializeClass">ページの初期処理のクラス</a></li>
     <ul>
         <li><a href="#EmployeeListInitializeProperty">プロパティ</a></li>
-        <li><a href="#EmployeeListInitializeMethod">ページの初期処理するメソッド</a></li>
+        <li><a href="#EmployeeListInitializeMethod">ページを初期処理するメソッド</a></li>
     </ul>
     </ul>
 <li><a href="#EmployeeListView">画面の説明</a></li>
@@ -1641,19 +2329,23 @@ public int getSearchCount(EmployeeSearchDto dto) {
 <h4><a name="EmployeeListInitialize">ページの初期処理の説明</a></h4>
 <pre>
 01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;
-02:    <b>m:action=&quot;#{employeeListInitAction.initialize}&quot;</b>
+02:    <strong>m:action=&quot;#{employeeListInitAction.initialize}&quot;</strong>
 03:    m:extends=&quot;/WEB-INF/layout/layout.html&quot;&gt;
 </pre>
 <p>2行目のaction属性でページを初期化するメソッドを指定しています。 </p>
-<h5><a name="EmployeeListInitializeDicon">ページの初期処理のdiconファイル</a></h5>
-<p>★employeeListInitActionはemployee.diconでexamples.jsf.action.impl.EmployeeListInitActionImplクラスのインスタンスで、requestスコープと宣言しています。</p>
-<pre>
-&lt;component name=&quot;employeeListInitAction&quot; 
-            class=&quot;examples.jsf.action.impl.EmployeeListInitActionImpl&quot; instance=&quot;request&quot;&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
-<h5><a name="EmployeeListInitializeProperty">プロパティ</p></h5>
+
+<h5><a name="EmployeeListInitializeClass">ページの初期処理のクラス</a></h5>
+<p>
+employeeListInitActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeListInitActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeListInitActionImplを見ていきましょう。
+</p>
+
+<h5><a name="EmployeeListInitializeProperty">プロパティ</a></h5>
 <p>定義されているプロパティは次の通りです。</p>
 <pre>
 public class EmployeeListInitActionImpl implements EmployeeListInitAction {
@@ -1663,8 +2355,14 @@ public class EmployeeListInitActionImpl implements EmployeeListInitAction {
                     :
 }
 </pre>
-<p>employeeSearchDtoは前画面のemployeeSearch.htmlに入力された内容を保持するもので、sessionスコープで管理されています(employee.dicon参照)。それがsetterメソッドsetEmployeeSearchDto()経由でここにセットされます。employeeLogicにはテーブルEMPを操作するインタフェースEmployeeLogicを実装したクラスEmployeeLogicImpのインスタンスがセットされます。employeeDtoListは、initialize()の中でセットされます。そのinitialize()は次のようになっています。</p>
-<h5><a name="EmployeeListInitializeMethod">ページの初期処理するメソッド</a></h5>
+<p>employeeSearchDtoは前画面のemployeeSearch.htmlに入力された内容を保持するもので、
+sessionスコープで管理されています(examples.jsf.dto.EmployeeSearchDtoクラスのCOMPONENTアノテーションを参照)。
+それがsetterメソッドsetEmployeeSearchDto()経由でここにセットされます。
+employeeLogicにはテーブルEMPを操作するインタフェースEmployeeLogicを実装したクラスEmployeeLogicImpのインスタンスがセットされます。
+employeeDtoListは、initialize()の中でセットされます。そのinitialize()は次のようになっています。
+</p>
+
+<h5><a name="EmployeeListInitializeMethod">ページを初期処理するメソッド</a></h5>
 <pre>
 public String initialize() {
     employeeDtoList = employeeLogic.searchEmployeeDtoList(employeeSearchDto);
@@ -1722,7 +2420,8 @@ public List searchEmployeeDtoList(EmployeeSearchDto dto) {
 <pre>
 &lt;tr class=&quot;evenRow&quot; m:class=&quot;#{i % 2 == 0 ? 'evenRow' : 'oddRow'}&quot;&gt;
 </pre>
-<p>各行の右端には"Edit","Delete","Inquire"のリンクでセットするパラメータが違うだけで、基本的には同じです。Editは次のようになっています。</p>
+<p>各行の右端には"Edit","Delete","Inquire"のリンクでセットするパラメータが違うだけで、基本的には同じです。
+Editは次のようになっています。</p>
 <pre>
 &lt;a href=&quot;employeeEdit.html&quot; m:action=&quot;#{employeeListAction.goNext}&quot;&gt;Edit
     &lt;span m:inject=&quot;f:param&quot; m:name=&quot;empno&quot; m:value=&quot;#{e.empno}&quot;/&gt;
@@ -1730,17 +2429,19 @@ public List searchEmployeeDtoList(EmployeeSearchDto dto) {
 &lt/a&gt;
 </pre>
 <h4><a name="EmployeeListAction">Actionクラスの説明</a></h4>
-<p>アクション属性のemployeeListActionを見ていきましょう。</p>
-<h5><a name="EmployeeListActionDicon">Actionクラスのdiconファイル</a></h5>
-<p>★このemployeeListActionはexamples/jsf/dicon/employee.diconで以下のように定義されています。aspectタグのactionInterceptorChainはこちらで説明した通りです。</p>
-<pre>
-&lt;component name=&quot;employeeListAction&quot; 
-            class=&quot;examples.jsf.action.impl.EmployeeListActionImpl&quot; instance=&quot;request&quot;&gt;
-    &lt;aspect&gt;actionInterceptorChain&lt;/aspect&gt;
-&lt;/component&gt;
-</pre>
+<p>action属性のemployeeListActionを見ていきましょう。</p>
+
 <h4><a name="EmployeeListActionClass">Actionクラス</a></h4>
-<p>examples.jsf.action.impl.EmployeeListActionImplクラスを見ていきましょう。</p>
+<p>
+employeeListActionは、<a href="#AutoRegisterForAction">Action自動登録設定</a>によってS2Containerに登録されています。
+<ul>
+<li>クラスはexamples.jsf.action.impl.EmployeeListActionImplです</li>
+<li>instanceモードはrequestです</li>
+<li>アスペクトとしてactionInterceptorChainが登録されています</li>
+</ul>
+examples.jsf.action.impl.EmployeeListActionImplクラスを見ていきましょう。
+</p>
+
 <h5><a name="EmployeeListActionProperty">プロパティ</a></h5>
 <p>定義されてるプロパティは以下の通りです。</p>
 <pre>
@@ -1852,6 +2553,7 @@ public String goNext() {
 <h5>ファイルダウンロードのサンプル。</h5>
 <p>作成中</p>
 現在作成中...
+
 <!-- document end -->
 <!-- don't edit start -->
 </td>
