@@ -58,7 +58,6 @@ s2jsf-exmapleのプログラムを順に解説します。
 <li><a href="#employeeConfirm">employeeConfirm.html</a></li>
 <li><a href="#employeeList">employeeList.html</a></li>
 </ul>
-<li><a href="#tips">開発Tips</a></li>
 </ul>
 
 <h2><a name="app.dicon">app.diconでのコンポーネント自動登録</a></h2>
@@ -298,15 +297,14 @@ Hello aaaと表示されるはずです。このサンプルでは、次のこ�
 URI(http://www.seasar.org/maya)は固定です。プレフィックスのmは任意の値を指定することが出来ますが、慣例的にmを
 
 使うことになっています。</p>
-<p>次のextends属性で、継承するレイアウトを指定しています。一貫したLook &amp; Feelを提供するために、ページのレ
-
-イアウトが、ヘッダー、メニュー、ボディ、フッターで構成され、個別のページはボディ部分だけが異なるというのは、
-
-よく見かけるパターンではないでしょうか。このようなニーズにこたえるために、S2JSFでは、ベースになるページでレイ
-
-アウトを定義し、個別のページでは、ベースとなるページを継承して特定の部分(例えばボディ)だけを上書きするという
-
-ことが可能になっています。それでは、layout.htmlを見てみましょう。</p>
+<p>
+次のextends属性で、継承するレイアウトを指定しています。
+一貫したLook &amp; Feelを提供するために、ページのレイアウトが、ヘッダー・メニュー・ボディ・フッターから構成され、
+個別のページはボディ部分だけが異なるというのは、よく見かけるパターンではないでしょうか。
+このようなニーズにこたえるために、S2JSFでは、ベースになるページでレイアウトを定義し、
+個別のページではベースとなるページを継承して特定の部分(例えばボディ)だけを上書きするということが可能になっています。
+それではlayout.htmlを見てみましょう。
+</p>
 <pre>
 01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
 02:&lt;head&gt;
@@ -2470,89 +2468,6 @@ public String goNext() {
 }
 </pre>
 <p>processModeDtoに選択されたモードをセットして、UPDATE_MODE(Edit)のときは/employee/employeeEdit.html(=employeeEdit) それ以外は/employee/employeeConfirm.html(=employeeConfirm) へ遷移させます。</p>
-
-<h3><a name="tips">開発Tips</a></h3>
-<p>開発Tipsの紹介をします。 Tipsでは次の事を説明します。</p>
-<ul>
-<li>m:passthrough="true" による素のHTML出力。</li>
-<li>JavaScriptから指定Actionの実行方法。</li>
-<li>カスタムバリデータにおける他の入力値参照方法。</li>
-<li>ファイルアップロードのサンプル。</li>
-<li>ファイルダウンロードのサンプル。</li>
-</ul>
-<h5>m:passthrough="true" による素のHTML出力</h5>
-<p>次に示すhtmlを s2jsf-example/test/test.html として作成します。</p>
-<pre>
-01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
-02:&lt;body&gt;
-03:&lt;form&gt;
-04:Test
-05:&lt;/body&gt;
-06:&lt;/html&gt;
-</pre>
-<p>実際の出力結果は以下のようになります。</p>
-<pre>
-01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
-02:&lt;body&gt;
-03:&lt;form id=&quot;_id9&quot; name=&quot;_id9&quot; method=&quot;post&quot; action=&quot;/s2jsf-example/test/test.html&quot; enctype=&quot;application/x-www-form-urlencoded&quot;&gt;
-04:Test
-05:&lt;/body&gt;
-06:&lt;/html&gt;
-</pre>
-<p>ここで任意にname属性やaction属性を指定したい場合には、次に示すようにm:passthrough="true"をformタグに指定します。</p>
-<pre>
-01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
-02:&lt;body&gt;
-03:&lt;form name=&quot;testForm&quot; action=&quot;hoge.html&quot; method=&quot;post&quot; m:passthrough=&quot;true&quot;&gt;
-04:Test
-05:&lt;/body&gt;
-06:&lt;/html&gt;
-</pre>
-<p>m:passthrough="true"を指定した場合の出力結果は以下のようになります。</p>
-<pre>
-01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
-02:&lt;body&gt;
-03:&lt;form action=&quot;hoge.html&quot; name=&quot;testForm&quot; method=&quot;post&quot;&gt;
-04:Test
-05:&lt;/body&gt;
-06:&lt;/html&gt;
-</pre>
-<p>m:passthrough="true"を指定した場合は、m:passthrough="true"以外の属性が全てそのまま出力される事が分かります。<br/>
-　 formタグだけではなく、他のinputタグ等に関しても同様の指定が可能です。</p>
-<h5>JavaScriptから指定Actionの実行方法。</h5>
-<p>ラジオボタンやチェックボックスのクリック時に指定したActionメソッドを呼び出す方法をs2jsf-exampleのaddを例にとって見てみましょう。</p>
-<p>add.htmlのformタグ以降を以下のように変更します</p>
-<pre>
-01:&lt;form id=&quot;form1&quot;&gt;
-02:&lt;a id=&quot;dummy1&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;
-03:&lt;input type=&quot;checkbox&quot; onclick=&quot;doAction();&quot;/&gt;calculate&lt;br/&gt;
-04:&lt;script type="text/javascript"&gt;
-05:&lt;!--
-06:function doAction() {
-07:  var f=document.forms['form1'];
-08:  f.target='';
-09:  f.elements['form1:_link_hidden_'].value='form1:dummy1';
-10:  f.submit();
-11:  return false;
-12:}
-13://--&gt;
-14:&lt;/script&gt;
-</pre>
-<p>
-1行目でformタグにid属性を設定します(今回は"form1")。<br/>
-　 2行目で呼び出したいactionを設定したダミーのanchorを記述します。この際、anchorにもid属性を設定します(今回は"dummy1")。<br/>
-　 4行目から14行目に呼び出したいJavascriptを記述します。<br/>
-　 8行目でformのtargetをクリアします。<br/>
-　 11行目で呼び出したいactionのidを指定しています。指定方法は formのid:_link_hidden_ となり :_link_hidden_ の部分は固定です。<br/>
-　 これによりJavascriptから指定アクションを呼び出す事が可能です。
-</p>
-<h5>カスタムバリデータにおける他の入力値参照方法。</h5>
-<p>作成中</p>
-<h5>ファイルアップロードのサンプル。</h5>
-<p>作成中</p>
-<h5>ファイルダウンロードのサンプル。</h5>
-<p>作成中</p>
-現在作成中...
 
 <!-- document end -->
 <!-- don't edit start -->

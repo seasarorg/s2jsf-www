@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- don't edit start -->
+<head>
+<title>Seasar - DI Container with AOP - </title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<link href="seasar_b.css" type="text/css" rel="stylesheet" media="screen" />
+<link href="seasar_p.css" type="text/css" rel="stylesheet" media="print" />
+<script src="seasar_b.js" type="text/JavaScript" language="JavaScript"></script>
+</head>
+<body onload="preload('ja')">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" align="left"><tr>
+<td align="left" valign="top" width="780"><table width="780" border="0" cellspacing="0" cellpadding="0" class="white">
+<tr><td colspan="7"><img height="5" width="780" src="images/top01_b.gif" alt=""></td></tr>
+<tr><td><img height="117" width="235" src="images/top02_b.gif" alt="Seasar"></td>
+<td colspan="3"><img height="117" width="289" src="images/top03.gif" alt="DI Container with AOP"></td>
+<td colspan="3"><img height="117" width="256" src="images/spacer.gif" alt=""></td>
+</tr><tr><td rowspan="2"><img src="images/top04.gif" alt="" height="49" width="235"></td>
+<td><a href="http://www.seasar.org/index.html"><img src="images/menu01_b_ja.gif" height="30" width="78" border="0" alt="" id="menu01" onmouseover="swap(1)" onmouseout="restore(1)"></a></td>
+<td><a href="http://www.seasar.org/projects.html"><img src="images/menu02_b_ja.gif" height="30" width="101" border="0" alt="" id="menu02" onmouseover="swap(2)" onmouseout="restore(2)"></a></td>
+<td><a href="http://www.seasar.org/products.html"><img src="images/menu03_b_ja.gif" height="30" width="110" border="0" alt="" id="menu03" onmouseover="swap(3)" onmouseout="restore(3)"></a></td>
+<td><a href="http://www.seasar.org/resources.html"><img src="images/menu04_b_ja.gif" height="30" width="113" border="0" alt="" id="menu04" onmouseover="swap(4)" onmouseout="restore(4)"></a></td>
+<td><img src="images/menu05_b_ja.gif" height="30" width="109" border="0" alt="" id="menu05" onmouseover="swap(5)" onmouseout="restore(5)"></td>
+<td><img height="30" width="34" src="images/menu06.gif" alt=""></td></tr><tr>
+<td colspan="6"><img height="19" width="545" src="images/spacer.gif" alt=""></td></tr></table>
+<table  width="780" border="0" cellspacing="0" cellpadding="0" height="100%" class="white">
+<tr align="left" valign="top"><td width="18"><img height="14" width="18" src="images/spacer.gif" alt=""></td><td width="744" class="main">
+<!-- don't edit end -->
+<!-- document start -->
+
+<ul>
+<li><a href="#tips">開発Tips</a></li>
+</ul>
+
+<h3><a name="tips">開発Tips</a></h3>
+<p>開発Tipsの紹介をします。 Tipsでは次の事を説明します。</p>
+<ul>
+<li>m:passthrough="true" による素のHTML出力。</li>
+<li>JavaScriptから指定Actionの実行方法。</li>
+<li>カスタムバリデータにおける他の入力値参照方法。</li>
+<li>ファイルアップロードのサンプル。</li>
+<li>ファイルダウンロードのサンプル。</li>
+</ul>
+<h5>m:passthrough="true" による素のHTML出力</h5>
+<p>次に示すhtmlを s2jsf-example/test/test.html として作成します。</p>
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+02:&lt;body&gt;
+03:&lt;form&gt;
+04:Test
+05:&lt;/body&gt;
+06:&lt;/html&gt;
+</pre>
+<p>実際の出力結果は以下のようになります。</p>
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+02:&lt;body&gt;
+03:&lt;form id=&quot;_id9&quot; name=&quot;_id9&quot; method=&quot;post&quot; action=&quot;/s2jsf-example/test/test.html&quot; enctype=&quot;application/x-www-form-urlencoded&quot;&gt;
+04:Test
+05:&lt;/body&gt;
+06:&lt;/html&gt;
+</pre>
+<p>ここで任意にname属性やaction属性を指定したい場合には、次に示すようにm:passthrough="true"をformタグに指定します。</p>
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+02:&lt;body&gt;
+03:&lt;form name=&quot;testForm&quot; action=&quot;hoge.html&quot; method=&quot;post&quot; m:passthrough=&quot;true&quot;&gt;
+04:Test
+05:&lt;/body&gt;
+06:&lt;/html&gt;
+</pre>
+<p>m:passthrough="true"を指定した場合の出力結果は以下のようになります。</p>
+<pre>
+01:&lt;html xmlns:m=&quot;http://www.seasar.org/maya&quot;&gt;
+02:&lt;body&gt;
+03:&lt;form action=&quot;hoge.html&quot; name=&quot;testForm&quot; method=&quot;post&quot;&gt;
+04:Test
+05:&lt;/body&gt;
+06:&lt;/html&gt;
+</pre>
+<p>m:passthrough="true"を指定した場合は、m:passthrough="true"以外の属性が全てそのまま出力される事が分かります。<br/>
+　 formタグだけではなく、他のinputタグ等に関しても同様の指定が可能です。</p>
+<h5>JavaScriptから指定Actionの実行方法。</h5>
+<p>ラジオボタンやチェックボックスのクリック時に指定したActionメソッドを呼び出す方法をs2jsf-exampleのaddを例にとって見てみましょう。</p>
+<p>add.htmlのformタグ以降を以下のように変更します</p>
+<pre>
+01:&lt;form id=&quot;form1&quot;&gt;
+02:&lt;a id=&quot;dummy1&quot; m:action=&quot;#{addAction.calculate}&quot;/&gt;
+03:&lt;input type=&quot;checkbox&quot; onclick=&quot;doAction();&quot;/&gt;calculate&lt;br/&gt;
+04:&lt;script type="text/javascript"&gt;
+05:&lt;!--
+06:function doAction() {
+07:  var f=document.forms['form1'];
+08:  f.target='';
+09:  f.elements['form1:_link_hidden_'].value='form1:dummy1';
+10:  f.submit();
+11:  return false;
+12:}
+13://--&gt;
+14:&lt;/script&gt;
+</pre>
+<p>
+1行目でformタグにid属性を設定します(今回は"form1")。<br/>
+　 2行目で呼び出したいactionを設定したダミーのanchorを記述します。この際、anchorにもid属性を設定します(今回は"dummy1")。<br/>
+　 4行目から14行目に呼び出したいJavascriptを記述します。<br/>
+　 8行目でformのtargetをクリアします。<br/>
+　 11行目で呼び出したいactionのidを指定しています。指定方法は formのid:_link_hidden_ となり :_link_hidden_ の部分は固定です。<br/>
+　 これによりJavascriptから指定アクションを呼び出す事が可能です。
+</p>
+<h5>カスタムバリデータにおける他の入力値参照方法。</h5>
+<p>作成中</p>
+<h5>ファイルアップロードのサンプル。</h5>
+<p>作成中</p>
+<h5>ファイルダウンロードのサンプル。</h5>
+<p>作成中</p>
+現在作成中...
+
+<!-- document end -->
+<!-- don't edit start -->
+</td>
+<td width="14"><img height="14" width="14" src="images/spacer.gif" alt=""></td>
+</tr><tr>
+<td width="14"><img height="30" width="14" src="images/spacer.gif" alt=""></td>
+<td width="766"><img height="30" width="592" src="images/spacer.gif" alt=""></td>
+</tr><tr>
+<td width="14"><img height="14" width="14" src="images/spacer.gif" alt=""></td>
+<td width="766" class="copyright">Copyright&copy; 2004-2005, The Seasar Foundation and the others. All rights reserved.</td>
+</tr></table>
+<td class="backright" align="left" valign="top">&nbsp;</td></tr><tr>
+<td class="backunder" align="left"  valign="top" width="780" height="16">&nbsp;</td>
+<td class="backcorner" align="left" valign="top" height="16">&nbsp;</td>
+</tr></table></body>
+<!-- don't edit end -->
+</html>
