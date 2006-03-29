@@ -187,7 +187,8 @@ app.diconでLogicをS2Containerへ登録している箇所はこのようにな�
 17:    &lt;/initMethod&gt;
 18:&lt;/component&gt;
 </pre>
-01～08行目で、名称が"LogicImpl"で終わるクラスをrequestスコープへ登録しています。
+01～08行目で、名称が"LogicImpl"で終わるクラスを登録しています。
+インスタンスモードは、明示的に指定していないためデフォルトのsingletonになります。
 10～18行目で、同じく"LogicImpl"で名称が終わるクラスにlogicInterceptorChainアスペクトを登録しています。
 logicInterceptorChainはexamples/jsf/dicon/allaop.diconで設定されています。
 <pre>
