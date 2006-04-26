@@ -28,6 +28,7 @@
 <tr align="left" valign="top"><td width="18"><img height="14" width="18" src="images/spacer.gif" alt=""></td><td width="744" class="main">
 <!-- don't edit end -->
 <!-- document start -->
+<br/>
 <h2>S2JSF 1.0.x から 1.1.x への移行ガイド</h2>
 
 バージョン1.0系で作成されたアプリケーションを、1.1系へ移行するためには、次の作業が必要です。
@@ -37,6 +38,7 @@
 <li>web.xmlを修正する</li>
 <li>diconを修正する</li>
 <li>プログラムを修正する</li>
+<li><a href="#extension">MyFacesの拡張コンポーネント使用時</a></li>
 </ul>
 
 <h2>jarファイル入れ替え</h2>
@@ -77,6 +79,69 @@ errorPageのdiconはどうする?
 基本的に修正は不要。
 htmlのid属性の値が変わるため、JavaScriptからid値を直接指定している場合にはプログラム修正が必要となる。
 
+<h2><a name="extension">MyFacesの拡張コンポーネント使用時</a></h2>
+<ul>
+<li>ファイルアップロード</li>
+</ul>
+
+<p>
+ファイルアップロード機能は、S2JSFでは提供していません。
+MyFacesのinputFileUploadを使用している場合は以下の手順により使用可能になります。
+</p>
+<p>以下のjarファイルをWEB-INF/libに追加します。</p>
+<pre>
+<li>commons-fileupload-1.0.jar</li>
+<li>tomahawk.jar</li>
+</pre>
+
+
+<p>jsf.diconに以下のMyFacesの拡張タグを追加します。</p>
+<pre>
+&lt;initMethod name="addTaglibUri"&gt;
+   &lt;arg&gt;"x"&lt;/arg&gt;
+   &lt;arg&gt;"http://myfaces.apache.org/tomahawk"&lt;/arg&gt;
+&lt;/initMethod&gt;
+</pre>
+<p>web.xmlに以下のfilterとfilter-mappingを設定します。</p>
+<pre>
+&lt;filter&gt;
+  &lt;filter-name&gt;extensionsFilter&lt;/filter-name&gt;
+  &lt;filter-class&gt;org.apache.myfaces.component.html.util.ExtensionsFilter&lt;/filter-class&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;uploadMaxFileSize&lt;/param-name&gt;
+    &lt;param-value&gt;100m&lt;/param-value&gt;
+    &lt;description&gt;Set the size limit for uploaded files.
+      Format: 10 - 10 bytes
+              10k - 10 KB
+              10m - 10 MB
+               1g - 1 GB
+    &lt;/description&gt;
+  &lt;/init-param&gt;
+  &lt;init-param&gt;
+    &lt;param-name&gt;uploadThresholdSize&lt;/param-name&gt;
+    &lt;param-value&gt;100k&lt;/param-value&gt;
+    &lt;description&gt;Set the threshold size - files
+      below this limit are stored in memory, files above
+      this limit are stored on disk.
+      Format: 10 - 10 bytes
+              10k - 10 KB
+              10m - 10 MB
+               1g - 1 GB
+    &lt;/description&gt;
+    &lt;/init-param&gt;
+    &lt;init-param&gt;
+      &lt;param-name&gt;uploadRepositoryPath&lt;/param-name&gt;
+      &lt;param-value&gt;/temp&lt;/param-value&gt;
+      &lt;description&gt;Set the path where the intermediary files will be stored.
+      &lt;/description&gt;
+  &lt;/init-param&gt;
+&lt;/filter&gt;
+
+&lt;filter-mapping&gt;
+  &lt;filter-name&gt;extensionsFilter&lt;/filter-name&gt;
+  &lt;url-pattern&gt;*.html&lt;/url-pattern&gt;
+&lt;/filter-mapping&gt;
+</pre>
 <!-- document end -->
 <!-- don't edit start -->
 </td>
