@@ -40,6 +40,7 @@
 <li><a href="#validator">カスタムバリデータにおける他の入力値参照方法。</a></li>
 <li><a href="#upload">ファイルアップロードのサンプル。</a></li>
 <li><a href="#down">ファイルダウンロードのサンプル。</a></li>
+<li><a href="#context">FacesContextのDI方法。</a></li>
 </ul>
 <h5><a name="#pass">m:passthrough="true" による素のHTML出力</a></h5>
 <p>次に示すhtmlを s2jsf-example/test/test.html として作成します。</p>
@@ -162,7 +163,25 @@ public class HogeDto implements Serializable {
 <p>詳しくは<a href="http://s2container.seasar.org/ja/DIContainer.html#BindingAnnotation">BindingAnnotation</a>を参考にして下さい。</p>
 <h5><a name="#down">ファイルダウンロードのサンプル。</a></h5>
 <p>作成中</p>
+<h5><a name="#context">FacesContextのDI方法。</a></h5>
+<p>FacesContextのDI方法を紹介します。</p>
+<p>まず以下のようにdiconファイルにFacesContext#getCurrentInstanceのコンポーネントを登録します。</p>
+<pre>
+&lt;component name="facesContext" instance="request"&gt;
+    @javax.faces.context.FacesContext@getCurrentInstance()
+&lt;/component&gt;
+</pre>
+<p>あとはFacesContextを利用したいコンポーネントでsetFacesContextを定義します</p>
+<pre>
+private FacesContext facesContext;
 
+public void setFacesContext(FacesContext facesContext) {
+  this.facesContext = facesContext;
+}
+</pre>
+<p>
+※注意事項としましては、FacesContextを利用するコンポーネントでは、コンポーネントのinstance属性を"request"または"prototype"に設定する必要があります。
+</p>
 <!-- document end -->
 <!-- don't edit start -->
 </td>
