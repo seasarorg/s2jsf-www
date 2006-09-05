@@ -31,53 +31,112 @@
 <br/>
 <h2>S2JSF 1.0.x から 1.1.x への移行ガイド</h2>
 
-バージョン1.0系で作成されたアプリケーションを、1.1系へ移行するためには、次の作業が必要です。
+バージョン1.0系で作成されたアプリケーションを、1.1系へ移行するためには、次の作業が必要です。<br/>
+(S2JSF1.0.17-example から S2JSF1.1.0-beta3-exampleへの移行を念頭においています。)
 
 <ul>
-<li>jarファイルを入れ替える</li>
-<li>web.xmlを修正する</li>
-<li>diconを修正する</li>
-<li>プログラムを修正する</li>
+<li><a href="#jar">jarファイルを入れ替え</a></li>
+<li><a href="#web.xml">web.xmlの修正</a></li>
+<li><a href="#dicon">diconの修正</a></li>
 <li><a href="#extension">MyFacesの拡張コンポーネント使用時</a></li>
 </ul>
 
-<h2>jarファイル入れ替え</h2>
-
-削除するjarファイル。
+<h2><a name="jar">jarファイルの入れ替え</a></h2>
+<div>
+<h4>以下のjarファイルを削除する。</h4>
 <ul>
 <li>myfaces-1.0.9.jar</li>
 <li>commons-codec-1.2.jar</li>
 <li>commons-digester-1.5.jar</li>
-<li>commons-fileupload-1.0.jar</li>
 <li>commons-validator.jar</li>
+<li>commons-collections-3.0.jar</li>
+<li>log4j-1.2.8.jar</li>
+<li>ognl-2.6.5.jar</li>
+<li>s2-extension-2.3*.jar</li>
+<li>s2-framework-2.3*.jar</li>
+<li>s2jsf.1.0.*.jar</li>
+<li>xercesImpl-2.5.0.jar</li>
 </ul>
-
-追加するjarファイル。
-
+</div>
+<div>
+<h4>以下のjarファイルを追加する。</h4>
 <ul>
 <li>teeda-core-x.x.x.jar</li>
+<li>teeda-extension-x.x.x.jar</li>
 <li>commons-lang-2.1.jar</li>
 <li>jstl-1.1.2.jar</li>
+<li>log4j-1.2.13.jar</li>
+<li>ognl-2.6.7.jar</li>
+<li>s2-framework-2.4.*.jar</li>
+<li>s2-extension-2.4.*.jar</li>
+<li>s2-jsf-1.1.*.jar</li>
+<li>tomahawk.jar(オプション)</li>
+<li>commons-fileupload-1.0.jar(オプション)</li>
+<li>xercesImpl-2.6.2.jar</li>
 </ul>
+</div>
 
-バージョンを上げるjarファイル。
+<span>上記の削除、追加を行って、ビルドパスに追加する。</span>
+
+<h2><a name="web.xml">web.xmlの修正</a></h2>
+
+<h4>myfacesの記述を消し、teedaの記述を加える。</h4>
 <ul>
-<li>xxxxxxx-x.x.x.jar</li>
+<li>&lt;context-param&gt;で&lt;param-name&gt;org.apache.myfaces.ALLOW_JAVASCRIPT&lt;/param-name&gt;部分を削除</li>
+<li>&lt;context-param&gt;で&lt;param-name&gt;org.apache.myfaces.DETECT_JAVASCRIPT&lt;/param-name&gt;部分を削除</li>
+<li>&lt;context-param&gt;で&lt;param-name&gt;org.apache.myfaces.PRETTY_HTML&lt;/param-name&gt;部分を削除</li>
+<li>&lt;context-param&gt;で&lt;param-name&gt;org.apache.myfaces.AUTO_SCROLL&lt;/param-name&gt;部分を削除</li>
 </ul>
 
-<h2>web.xml</h2>
+<h4>listenerの設定を修正</h4>
+<span>MyFacesのListener登録してあったところを、TeedaのListenerに置き換える。</span>
+<pre>
+&lt;listener&gt;
+&nbsp;&nbsp;&lt;listener-class&gt;org.apache.myfaces.webapp.StartupServletContextListener&lt;/listener-class&gt;
+&lt;/listener&gt;
+</pre>
+を
+<pre>
+&lt;listener&gt;
+&nbsp;&nbsp;&lt;listener-class&gt;org.seasar.teeda.core.webapp.TeedaConfigureListener&lt;/listener-class&gt;
+&lt;/listener&gt;
+</pre>
 
-myfacesの記述を消し、teedaの記述を加える。
+に変更する。
 
-<h2>dicon</h2>
+<h4>filterの設定を修正</h4>
 
-teeda.diconをincludeする。
-errorPageのdiconはどうする?
+&lt;filter&gt;のrequestDumpFilterの記述を削除
+<br/>
 
-<h2>プログラム修正</h2>
+<h2><a name="dicon">diconの修正</a></h2>
+<ul>
+<li>app.diconにteeda.diconをincludeする</li>
+<li>j2ee.diconを削除する</li>
+<li>jdbc.diconを追加する</li>
+<li>convention.diconを追加する</li>
+<li>teedaLookup.diconを追加する(*1)</li>
+<li>teedaErrorPage.diconを追加する</li>
+<li>jsf.diconのErrorMessageFinderクラスの指定をTeedaに変更する(*2)</li>
+</ul>
 
-基本的に修正は不要。
-htmlのid属性の値が変わるため、JavaScriptからid値を直接指定している場合にはプログラム修正が必要となる。
+*1:idをMyFacesと互換性を保ちたい場合は、[1]を[2]に変更する。
+<pre>
+<strong>[1]</strong>&lt;component class="org.seasar.teeda.core.render.DefaultComponentIdLookupStrategy" /&gt;
+</pre>
+<pre>
+<strong>[2]</strong>&lt;component class="org.seasar.teeda.core.render.JsfSpecComponentIdLookupStrategy" /&gt;
+</pre>
+<br/>
+
+<span>*2:jsf.diconのErrorMessageFinderクラスの指定先を[1]から[2]に変更する。</span>
+<pre>
+<strong>[1]</strong>&lt;component name="errorMessageFinder" class="org.seasar.jsf.util.ErrorMessageFinder" /&gt;
+</pre>
+<pre>
+<strong>[2]</strong>&lt;component name="errorMessageFinder" class="org.seasar.teeda.core.util.ErrorMessageFinder" /&gt;
+</pre>
+<br/>
 
 <h2><a name="extension">MyFacesの拡張コンポーネント使用時</a></h2>
 <ul>
@@ -89,10 +148,10 @@ htmlのid属性の値が変わるため、JavaScriptからid値を直接指定�
 MyFacesのinputFileUploadを使用している場合は以下の手順により使用可能になります。
 </p>
 <p>以下のjarファイルをWEB-INF/libに追加します。</p>
-<pre>
+<ul>
 <li>commons-fileupload-1.0.jar</li>
 <li>tomahawk.jar</li>
-</pre>
+</ul>
 
 
 <p>jsf.diconに以下のMyFacesの拡張タグを追加します。</p>
