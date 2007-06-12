@@ -34,6 +34,7 @@ s2jsf-exmapleのプログラムを順に解説します。
 実際に動作するサンプルを参考に、S2JSFの使い方を学習しましょう。
 </p>
 <ul>
+<li><a href="#itemsSave">Teeda ExtensionのItemsSave機能の使い方</a></li>
 <li><a href="#app.dicon">app.diconでのコンポーネント自動登録</a></li>
 <li><a href="#hello">hello.html</a></li>
 <li><a href="#add">add.html</a></li>
@@ -59,6 +60,72 @@ s2jsf-exmapleのプログラムを順に解説します。
 <li><a href="#employeeList">employeeList.html</a></li>
 </ul>
 </ul>
+<h2><a name="itemsSave">Teeda ExtensionのItemsSave機能の使い方</a></h2>
+S2JSF1.1に限定されますが、Teeda Extensionの<a href="http://www.seasar.org/wiki/index.php?Teeda%2FgettingStarted#dec73883">ItemsSave</a>同様の機能を使用する事が可能です。<br/>
+今まで、ForEachで使用していたListを次画面に引き継ぐには対象Listのinstance属性をsessionにする必要がありましたが<br/>
+Teeda ExtensionのItemsSave機能を使う事によりinstance属性をrequestにして使用する事が可能です。<br/>
+<b>使用手順</b>
+<p>app.diconにRenderer登録用の以下の記述を追記します</p>
+<pre>
+  &lt;component
+    class="org.seasar.teeda.core.render.autoregister.TeedaRendererComponentAutoRegister"&gt;
+    &lt;initMethod name="addReferenceClass"&gt;
+      &lt;arg&gt;@org.seasar.teeda.extension.render.html.HtmlTextRenderer@class&lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name="addClassPattern"&gt;
+      &lt;arg&gt;"org.seasar.teeda.extension.render.html"&lt;/arg&gt;
+      &lt;arg&gt;"THtmlItemsSaveHiddenRenderer"&lt;/arg&gt;
+    &lt;/initMethod&gt;
+  &lt;/component&gt;
+</pre>
+
+<p>jsf.diconにTaglib登録として以下の記述を追加します</p>
+<pre>
+  &lt;initMethod name="addTaglibUri"&gt;
+    &lt;arg&gt;"te"&lt;/arg&gt;
+    &lt;arg&gt;"http://www.seasar.org/teeda/extension"&lt;/arg&gt;
+  &lt;/initMethod&gt;
+</pre>
+
+<p>これでItemsSave機能自体を使う準備は整いました。</p>
+<p>画面で使用するhogeDtoListというDTOのListはdiconファイルに以下のように登録されていると仮定します</p>
+<p><b>※instance属性がrequestになっています</b></p>
+<pre>
+  &lt;component name="hogeDtoList" class="java.util.ArrayList" instance="request"&gt;
+    &lt;initMethod name="add" &gt;
+      &lt;arg&gt;
+        &lt;component class="examples.jsf.dto.HogeDto" instance="prototype"&gt;
+          &lt;property name="input"&gt;"aaa"&lt;/property&gt;
+        &lt;/component&gt;
+      &lt;/arg&gt;
+    &lt;/initMethod&gt;
+    &lt;initMethod name="add"&gt;
+      &lt;arg&gt;
+        &lt;component class="examples.jsf.dto.HogeDto" instance="prototype"&gt;
+          &lt;property name="input"&gt;"bbb"&lt;/property&gt;
+        &lt;/component&gt;
+      &lt;/arg&gt;
+    &lt;/initMethod&gt;
+  &lt;/component&gt;
+</pre>
+
+<p>使用する画面のActionにListのgetterを用意します。</p>
+<pre>
+    /**
+     * @return hogeDtoList
+     */
+    public List getHogeDtoList() {
+        return hogeDtoList;
+    }
+</pre>
+
+<p>実際のHTMLでは以下のように指定します</p>
+<pre>
+&lt;span m:inject="te:inputHidden" m:value="#{hogeDtoList}"/&gt;
+</pre>
+
+
+
 
 <h2><a name="app.dicon">app.diconでのコンポーネント自動登録</a></h2>
 app.diconでは、
